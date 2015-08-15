@@ -8,7 +8,7 @@ from cocos.layer import MultiplexLayer
 from Menus import MainMenu
 
 def setup():
-    director.director.init(width=800, height=650, caption='MatchBrain')
+    director.director.init(width=800, height=700, caption='MatchBrain')
     scene = Scene()
     scene.add(MultiplexLayer(
         MainMenu(),

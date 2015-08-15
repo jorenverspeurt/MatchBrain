@@ -13,18 +13,6 @@ SCORE_H = 96
 PROG_H = 40
 PROG_W = 200
 
-class BackgroundLayer(Layer):
-    def __init__(self):
-        super(BackgroundLayer, self).__init__()
-        # self.img = pyglet.resource.image('background.png')
-
-    def draw(self):
-        pass
-        # glPushMatrix()
-        # self.transform()
-        #self.img.blit(0,0)
-        #glPopMatrix()
-
 
 class ScoreLayer(Layer):
     objectives = []
@@ -68,25 +56,20 @@ class ScoreLayer(Layer):
         self.objectives_labels = []
         x = w/2-150/2
         for tile_type, sprite, count in objectives:
-            text_w = len(str(count))*7
-            count_label_set = dict(font_size=14,
+            text_w = len(str(count))*8
+            count_label_cfg = dict(font_size=16,
                                    font_name=f.default,
                                    color=c.white,
                                    bold=True,
                                    anchor_x='left',
                                    anchor_y='bottom')
-            count_label = Label(str(count), **count_label_set)
-            count_label.position = x-text_w, 7
+            count_label = Label(str(count), **count_label_cfg)
+            count_label.position = x-text_w, 8
             self.add(count_label, z=2)
             self.objectives_labels.append(count_label)
-            count_label_set['font_size'] = 16
-            count_label = Label(str(count), **count_label_set)
-            count_label.position = x-text_w-1, 8
-            self.add(count_label, z=1)
-            self.objectives_labels.append(count_label)
-            sprite.position = x, 24
-            sprite.scale = 0.5
-            x += 50
+            sprite.position = x, PROG_H/2+38
+            sprite.scale = 0.7
+            x += 60
             self.add(sprite)
 
     def draw(self):
