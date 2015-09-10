@@ -62,4 +62,4 @@ Ik reken voor alle tests ongeveer een uur, afhankelijk van in welk stadium je ko
 Kom langs! 🙂
 
 ### Stap 4 ###
-Ergens rond het einde van het semester laat ik weten wie wat gewonnen heeft en hoe je het komen halen.
+Ergens rond het einde van het semester laat ik weten wie wat gewonnen heeft en hoe je het kan komen halen.
