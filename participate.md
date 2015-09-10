@@ -27,7 +27,7 @@ Om je te belonen voor je deelname zijn er een aantal loterijen die ik ga opzette
 
 * 1 van 3 cinema tickets
 * 1 van 5 chocoladen beeldjes (de oorsprong hiervan zal ik binnenkort  aankondigen)
-* 1 of meer van de vele vele Steam/UPlay keys die ik nog over heb voor games waaronder
+* 1 of meer van de vele vele Steam/Origin keys die ik nog over heb voor games waaronder
     + Magicka
     + War of the Roses: Kingmaker
     + Torchlight II
