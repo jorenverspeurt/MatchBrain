@@ -7,7 +7,7 @@ permalink: /participate/
 
 Welkom en bedankt dat je overweegt om me te helpen met mijn thesisproject!
 Hieronder staat wat meer uitleg over hoe en onder welke voorwaarden je kan deelnemen.
-Als je direct wil overgaan tot actie, skip de voorwaarden en ga direct naar [Stappen](#stappen)
+*Als je direct wil overgaan tot actie, skip de voorwaarden en ga direct naar [Stappen](#stappen)*
 
 ## De voorwaarden ##
 
