@@ -1,0 +1,13 @@
+# Site settings
+title: MatchBrain
+description: > # this means to ignore newlines until "baseurl:"
+  An information page about MatchBrain, my thesis project for my Computer 
+  Science Master's degree at KULeuven. Includes info on how to contact me to
+  come help me by testing the project.
+baseurl: "/MatchBrain" # the subpath of your site, e.g. /blog/
+url: "http://jorenverspeurt.github.io" # the base hostname & protocol for your site
+twitter_username: JorenYuuji
+github_username:  jorenverspeurt
+
+# Build settings
+markdown: kramdown

@@ -1,0 +1,45 @@
+---
+layout: default
+---
+
+<div class="home">
+  <p>
+  <h1 class="page-heading">Welkom!</h1>
+    Dit is de blog waar ik van tijd tot tijd updates op ga posten over mijn 
+    thesisproject, bedoeld voor geïnteresseerde mensen en deelnemers aan mijn 
+    experimenten.
+    Als je gewoon wilt weten hoe je kan deelnemen aan een experiment neem een 
+    kijkje op de <a href="/MatchBrain/participate/">Deelnemen</a> pagina.
+    Wil je meer weten over mijn thesis, stuur me dan iets op joren [punt] 
+    verspeurt [at] student [punt] kuleuven [punt] be !
+  </p>
+
+  <p>
+  <h1 class="page-heading">Welcome!</h1>
+    This is the blog where I will post updates about my thesis project from 
+    time to time, intended for people who'd like to know more about it and 
+    participants in my experiments.
+    If you would just like more info on how to participate please visit the 
+    <a href="/MatchBrain/participate/">Participate</a> page.
+    If you would like to know more about my thesis send an e-mail to joren 
+    [dot] verspeurt [at] student [dot] kuleuven [dot] be !
+  </p>
+
+  <p/>
+  <h1 class="page-heading">Posts</h1>
+
+  <ul class="post-list">
+    {% for post in site.posts %}
+      <li>
+        <span class="post-meta">{{ post.date | date: "%b %-d, %Y" }}</span>
+
+        <h2>
+          <a class="post-link" href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a>
+        </h2>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <p class="rss-subscribe">subscribe <a href="{{ "/feed.xml" | prepend: site.baseurl }}">via RSS</a></p>
+
+</div>
