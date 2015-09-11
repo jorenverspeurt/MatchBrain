@@ -46,8 +46,8 @@ Je kan laten weten als je de test komt uitvoeren aan welke loterij je graag zou 
 Vul de [enquête](http://goo.gl/forms/1M5kEti67Y) in. Er zijn redelijk wat vragen maar het grootste deel zijn korte meerkeuzevragen dus ze zou redelijk snel moeten gaan.
 
 ### Stap 2 ###
-Maak een afspraak met mij voor de echte test.
-Daar zijn 2 opties voor:
+Maak een afspraak met mij voor de echte test. Ik ga waarschijnlijk beginnen testen ergens in de week van de 21e of de 28e September. Er gaan meerdere fases zijn tussen dan en eind November en ik heb voor elke fase testers nodig.
+Er zijn 2 opties om een afspraak te maken:
 
 -    Als je mij persoonlijk kent: stuur mij een mail of een Facebook berichtje 
      met waar en op welke momenten je zou kunnen komen testen. Ik zal je dan 
