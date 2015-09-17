@@ -1,0 +1,69 @@
+# Fases
+- 1
+    - Verloop
+        - (Enquete)
+        - Ingeven nickname
+        - Calibratie
+        - Spelen
+            - Beperkt aantal objectives?
+            - Volledig statisch (zelfs predetermined drops?)
+            - Gerandomiseerde volgorde objectives?
+        - Evaluatie? Spelen? Evaluatie?
+        - ...
+        - Vrij spel?
+    - Verworven data
+        - Enquete
+        - Calibratie
+        - Continue speel data
+        - Evaluaties?
+        - Free time data?
+
+
+# Essentieel
+- Verwerking enquete (fase 1)
+    - Google docs -> JSON
+- Simulator (fase 1? - )
+    - Aantal matches vinden
+    - Mogelijke puzzel objectives vinden + grading
+    - Actie objectives grading (curve?)
+    - Bepaling drops om moeilijkheidsgraad te beinvloeden?
+- Logging (fase 1 - )
+    - Toevoegen!
+    - Integreer bw + spel data (+ debugging, ...?)
+- Stages (fase 1 - )
+    - Ingeven nickname
+    - Calibratie (fase 1)
+    - (Spel)
+    - Evaluatie? (fase 1? 2?)
+- Objectives (fase 1/2 - )
+    - Oud systeem er uit smijten
+    - Events bij maken die kunnen geinterpreteerd worden door nieuwe objectives
+    - Aantal objectives maken
+        - Actie
+            - x punten in y tijd
+            - x matches in y tijd
+            - x 4-matches in y tijd
+            - (nieuwe mechanismes)
+        - Puzzel
+            - cascade van x punten (in lange tijd)
+            - x matches van zelfde soort na elkaar
+            - specifieke opeenvolging matches?
+            - (nieuwe mechanismes)
+    - Moeilijkheidsgraad systeem
+- ML (fase 2 - )
+    - SDA
+        - Implementeren (theano? caffe? ...)
+        - Trainen op fase 1 data (compleet)
+        - Trainen op fase 2 data
+        - ...
+    - RNN
+        - Implementeren (...)
+        - Trainen op fase 1 data (Calibratie, evaluatie?)
+        - Trainen op fase 2 data (Calibratie, evaluatie?, 
+
+# Wishlist
+- Additionele mechanismes
+    - Drop to bottom
+    - Bommen
+    - Timed fruit
+    - 
