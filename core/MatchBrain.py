@@ -1,14 +1,17 @@
 __author__ = 'joren'
-from os.path import exists, join
+
+import logging
+from datetime import datetime as dt
 
 import pyglet.resource
 from cocos import director
 from cocos.scene import Scene
 from cocos.layer import MultiplexLayer
-from Menus import MainMenu
 
-import logging
-from datetime import datetime
+from Menus import MainMenu
+from LogHelpers import CustomHandler
+
+version = 0.1
 
 def setup():
     director.director.init(width=800, height=700, caption='MatchBrain')
@@ -25,13 +28,20 @@ def cleanup():
     pass
 
 if __name__ == '__main__':
-    rootLogger = logging.getLogger('')
+    # (Data) logging stuff
+    guineaPig = raw_input('Enter nickname: ')
+    rootLogger = logging.getLogger()
     rootLogger.setLevel(logging.DEBUG)
     rootHandler = logging.StreamHandler()
-    rootFormatter =
+    rootLogger.addHandler(rootHandler)
     jsonLogger = logging.getLogger('json')
     jsonLogger.setLevel(logging.INFO)
-    jsonRootFormatter =
+    jsonHandler = CustomHandler(
+        '../logs/'+guineaPig+dt.now().strftime('%Y-%m-%dT%H:%M')+'.json',
+        {'nick': guineaPig, 'startTime': dt.now(), 'version': version})
+    rootLogger.debug("Yo!", extra={"test": 3})
+    jsonLogger.info({"test": "value", "other": {"more": 0}})
+    # Start the game!
     pyglet.resource.path = ['../resources']
     pyglet.resource.reindex()
     game(scene=setup())
