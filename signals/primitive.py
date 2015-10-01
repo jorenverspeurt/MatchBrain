@@ -1,9 +1,9 @@
 from __future__ import print_function
-import string, random
+import string
+import random
+import logging
 
 __author__ = 'joren'
-
-from itertools import repeat, islice
 
 """
 Primitives for signal handling (FRP style, but less advanced?)
@@ -18,7 +18,7 @@ structure.
 def randomName(length):
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(length))
 
-class Debuggable:
+class Debuggable(object):
     """
     Things that have a name and a signal or value that is printed based on the debug parameter.
     """
@@ -53,7 +53,7 @@ class Source(Debuggable):
         self.shouldPull = shouldPull
         self.subscribers = []
 
-    def push(self, _, value = None):
+    def push(self, _ = None, value = None):
         """
         2nd argument is not used.
         Only pull a new value from upstream if it's fresh. By default always pull.
@@ -109,6 +109,15 @@ class Sink(Debuggable):
             if self.subscriptions[sub]:
                 self.downstream(sub.pull())
                 self.subscriptions[sub] = False
+
+
+class LogSink(Sink):
+    """
+    All this sink does is log the provided dicts to a data logger
+    """
+
+    def __init__(self, source, logger, level = logging.INFO):
+        Sink.__init__(self, [source], (lambda m: logger.log(level, m)), logger.name, debug = False)
 
 
 class Transformer(Debuggable):
@@ -189,3 +198,4 @@ class Process:
             for sconn in connections[source]:
                 if sconn in sinks.iterkeys():
                     self.graph.append(Transformer(sources[source], (lambda x: x), sinks))
+        #TODO complete graph building

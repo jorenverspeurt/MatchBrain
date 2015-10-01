@@ -1,11 +1,12 @@
 __author__ = 'joren'
 
-from signals.primitive import *
-
 import datetime as dt
 import json
+
 from mindwavemobile.MindwaveDataPoints import *
 from mindwavemobile.MindwaveDataPointReader import MindwaveDataPointReader
+
+from signals.primitive import *
 
 
 class RawMeasurement(dict):
@@ -87,6 +88,7 @@ class BrainWaveSource(Source):
         self.mindwaveDataPointReader.start()
         self.finished = False
         self.history = {}
+
     def get_dict(self):
         "Synchronous (!) method to get the next set of brainwave measurements from the sensor"
         while True:
@@ -102,7 +104,7 @@ class BrainWaveSource(Source):
                     yield builder.get_dict()
 
     def has_fresh(self):
-        return self.finished
+        return True #self.finished
 
     def record(self, value):
         self.history[str(dt.datetime.now())] = value

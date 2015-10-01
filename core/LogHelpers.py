@@ -32,6 +32,7 @@ class CustomHandler(logging.FileHandler):
         The json objects are all prefixed with a comma so they fit in the list.
         """
         logging.FileHandler.__init__(self,filename, mode='a', encoding='utf-8', delay=True)
+        self.filename = filename
         defaultFormatter = CustomFormatter('%(msecs) %(name) %(message)')
         f = open(filename, mode='w')
         f.write('['+json.dumps(
@@ -43,16 +44,8 @@ class CustomHandler(logging.FileHandler):
         self.setFormatter(defaultFormatter)
 
     def close(self):
-        try:
-            self.stream.write(']')
-            self.flush()
-        finally:
-            self.acquire()
-            try:
-                logging.FileHandler.close(self)
-            finally:
-                self.release()
-
+        f = open(self.filename, mode='a')
+        f.write(']')
 
 
 
