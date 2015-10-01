@@ -45,9 +45,9 @@ class GameView(cocos.layer.ColorLayer):
 
 
 
-def get_newgame():
+def get_newgame(level = 1):
     status.score = 0
-    status.level = None
+    status.level = level
 
     scene = Scene()
     model = GameModel()

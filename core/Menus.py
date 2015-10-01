@@ -54,7 +54,7 @@ class MainMenu(Menu):
     def on_train(self):
         import TrainView
 
-        director.push(TrainView.get_newtrainer())
+        director.push(TrainView.get_new_trainer())
 
     def on_scores(self):
         self.parent.switch_to(2)

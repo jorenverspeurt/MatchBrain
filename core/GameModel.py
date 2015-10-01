@@ -1,6 +1,7 @@
 __all__ = ['GameModel']
 
 from random import choice, randint
+from math import log
 from glob import glob
 import logging
 
@@ -34,6 +35,7 @@ class GameModel(pyglet.event.EventDispatcher):
         self.objectives = []
         self.stateLogger = logging.getLogger('data.game.state')
         self.scoreLogger = logging.getLogger('data.game.score')
+        self.objectiveLogger = logging.getLogger('data.game.objective')
 
     def start(self):
         self.set_next_level()
@@ -61,10 +63,13 @@ class GameModel(pyglet.event.EventDispatcher):
         while len(objectives) < 3:
             tile_type = choice(self.available_tiles)
             sprite = self.tile_sprite(tile_type, (0, 0))
-            count = randint(1, 20)
+            max = 100 if status.level == 0 else round(5+10*log(status.level))
+            count = randint(1, max)
             if tile_type not in [x[0] for x in objectives]:
                 objectives.append([tile_type, sprite, count])
-
+        self.objectiveLogger.info({ 'type': "3kinds"
+                                  , 'duration': 60
+                                  , '3kinds': {obj[0]: obj[2] for obj in objectives}})
         self.objectives = objectives
 
     def fill_with_random_tiles(self):
@@ -117,6 +122,9 @@ class GameModel(pyglet.event.EventDispatcher):
                 elem[1].do((Scale + Reverse(Scale))*3)
         # Remove objectives already completed
         self.objectives = [elem for elem in self.objectives if elem[2] > 0]
+        self.objectiveLogger.info({ 'type': "3kinds"
+                                  , 'duration': self.play_time
+                                  , '3kinds': {obj[0]: obj[2] for obj in self.objectives}})
         if len(self.imploding_tiles) > 0:
             self.game_state = IMPLODING_TILES  # Wait for the implosion animation to finish
             self.stateLogger.info('imploding_tiles')
@@ -173,6 +181,8 @@ class GameModel(pyglet.event.EventDispatcher):
             self.drop_groundless_tiles()
             if len(self.objectives) == 0:
                 pyglet.clock.unschedule(self.time_tick)
+                if status.level:
+                    status.level += 1
                 self.dispatch_event("on_level_completed")
 
     def set_controller( self, controller):

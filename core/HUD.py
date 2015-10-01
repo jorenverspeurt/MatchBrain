@@ -1,10 +1,9 @@
 from cocos.layer import *
-
 from cocos.text import *
 from cocos.actions import *
+
 from ProgressBar import ProgressBar
 from status import status
-
 from Resources import Colors, Fonts
 c = Colors()
 f = Fonts()
@@ -84,19 +83,21 @@ class MessageLayer(Layer):
     def show_message(self, msg, callback=None, msg_duration=1):
         w, h = director.get_window_size()
 
-        self.msg = Label(msg,
-                         font_size=52,
-                         font_name=f.default,
-                         anchor_y='center',
-                         anchor_x='center')
+        self.msg = RichLabel(msg,
+                             font_size=52,
+                             font_name=f.default,
+                             anchor_y='center',
+                             anchor_x='center',
+                             multiline=True,
+                             width=700)
         self.msg.position = (w // 2.0, h)
 
         self.add(self.msg)
 
-        actions = Accelerate(MoveBy((0, -h / 2.0), duration=msg_duration/2))
+        actions = Accelerate(MoveBy((0, -h / 2.0), duration=0.5))
         actions += \
-            Delay(1) + \
-            Accelerate(MoveBy((0, -h / 2.0), duration=msg_duration/2)) + \
+            Delay(msg_duration - 1) + \
+            Accelerate(MoveBy((0, -h / 2.0), duration=0.5)) + \
             Hide()
 
         if callback:

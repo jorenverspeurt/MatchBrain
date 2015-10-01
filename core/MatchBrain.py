@@ -15,7 +15,7 @@ from LogHelpers import CustomHandler
 from signals.mindwave import BrainWaveSource
 from signals.primitive import LogSink
 
-version = 0.1
+version = 0.2
 
 def setup():
     director.director.init(width=800, height=700, caption='MatchBrain')
