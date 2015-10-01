@@ -1,11 +1,13 @@
 __all__ = ['GameModel']
 
-import pyglet
 from random import choice, randint
 from glob import glob
-from cocos.director import director
+import logging
+
+import pyglet
 from cocos.sprite import Sprite
 from cocos.actions import *
+
 from status import status
 
 CELL_WIDTH, CELL_HEIGHT = 100, 100
@@ -30,6 +32,8 @@ class GameModel(pyglet.event.EventDispatcher):
         self.available_tiles = [s.replace('../resources/', '') for s in glob('../resources/*.png')]
         self.game_state = WAITING_PLAYER_MOVEMENT
         self.objectives = []
+        self.stateLogger = logging.getLogger('data.game.state')
+        self.scoreLogger = logging.getLogger('data.game.score')
 
     def start(self):
         self.set_next_level()
@@ -49,6 +53,7 @@ class GameModel(pyglet.event.EventDispatcher):
         if self.play_time == 0:
             pyglet.clock.unschedule(self.time_tick)
             self.game_state = GAME_OVER
+            self.stateLogger.info('game_over')
             self.dispatch_event("on_game_over")
 
     def set_objectives(self):
@@ -114,11 +119,11 @@ class GameModel(pyglet.event.EventDispatcher):
         self.objectives = [elem for elem in self.objectives if elem[2] > 0]
         if len(self.imploding_tiles) > 0:
             self.game_state = IMPLODING_TILES  # Wait for the implosion animation to finish
+            self.stateLogger.info('imploding_tiles')
             pyglet.clock.unschedule(self.time_tick)
-            print "Removing time_tick"
         else:
             self.game_state = WAITING_PLAYER_MOVEMENT
-            print "Adding time_tick"
+            self.stateLogger.info('waiting_player_movement')
             pyglet.clock.schedule_interval(self.time_tick, 1)
         return self.imploding_tiles
 
@@ -152,14 +157,15 @@ class GameModel(pyglet.event.EventDispatcher):
                 self.dropping_tiles.append(sprite)
 
     def on_drop_completed(self, sprite):
-        print "on_drop_completed",map(lambda s: s.name, self.dropping_tiles)
+        self.stateLogger.info('drop_completed')
         self.dropping_tiles.remove(sprite)
         if len(self.dropping_tiles) == 0:  # All tile dropped
             self.implode_lines()  # Check for new implosions
 
     def on_tile_remove(self, sprite):
-        print "on_tile_remove",status.score
+        self.stateLogger.info('tile_remove')
         status.score += len(self.imploding_tiles)//3
+        self.scoreLogger.info(status.score)
         self.imploding_tiles.remove(sprite)
         self.view.remove(sprite)
         if len(self.imploding_tiles) == 0:  # Implosion complete, drop tiles to fill gaps
@@ -189,6 +195,7 @@ class GameModel(pyglet.event.EventDispatcher):
 
     def on_tiles_swap_completed(self):
         self.game_state = DROPPING_TILES
+        self.stateLogger.info('dropping_tiles')
         if len(self.implode_lines()) == 0:
             # No lines imploded, roll back the game play
 
@@ -204,6 +211,7 @@ class GameModel(pyglet.event.EventDispatcher):
 
     def on_tiles_swap_back_completed(self):
         self.game_state = WAITING_PLAYER_MOVEMENT
+        self.stateLogger.info('waiting_player_movement')
 
     def to_display(self, (row, col)):
         """

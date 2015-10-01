@@ -1,11 +1,14 @@
 import cocos
+import cocos.layer
 from cocos.director import director
 from cocos.scene import Scene
+
 from HUD import HUD
 from GameModel import GameModel
 from GameController import GameController
 from status import status
 from Resources import Colors
+
 c = Colors()
 
 

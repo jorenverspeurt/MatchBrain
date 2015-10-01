@@ -98,7 +98,7 @@ class BrainWaveSource(Source):
                 datapoint = self.mindwaveDataPointReader.readNextDataPoint()
                 builder.add_measurement(datapoint)
                 if builder.is_finished():
-                    builder.print_canonical()
+                    #builder.print_canonical()
                     self.record(builder.get_dict())
                     self.finished = True
                     yield builder.get_dict()

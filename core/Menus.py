@@ -5,6 +5,7 @@ import pyglet
 
 from Resources import Colors
 from Resources import Fonts
+
 c = Colors()
 f = Fonts()
 
@@ -36,6 +37,7 @@ class MainMenu(Menu):
         items.append(MenuItem('New Game', self.on_new_game))
         # items.append( MenuItem('Options', self.on_options) )
         #items.append( MenuItem('Scores', self.on_scores) )
+        items.append(MenuItem('Train', self.on_train))
         items.append(MenuItem('Quit', self.on_quit))
 
         self.create_menu(items, shake(), shake_back())
@@ -49,6 +51,10 @@ class MainMenu(Menu):
     def on_options(self):
         self.parent.switch_to(1)
 
+    def on_train(self):
+        import TrainView
+
+        director.push(TrainView.get_newtrainer())
 
     def on_scores(self):
         self.parent.switch_to(2)

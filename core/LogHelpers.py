@@ -11,10 +11,12 @@ class CustomFormatter(jsonlogger.JsonFormatter):
         if 'name' in log_record: # then it's from our standard format
             ret = {std:log_record[std] for std in self._required_fields}
             paths = log_record['name'].split('.')
+            del ret['name']
             paths.reverse()
-            base = {other:log_record[other]
+            base = log_record['message'] or {other:log_record[other]
                     for other in log_record
                     if other not in self._required_fields}
+            del ret['message']
             ret.update(reduce((lambda a,b: {b: a}), paths, base))
             return ret
         else:
@@ -33,7 +35,7 @@ class CustomHandler(logging.FileHandler):
         """
         logging.FileHandler.__init__(self,filename, mode='a', encoding='utf-8', delay=True)
         self.filename = filename
-        defaultFormatter = CustomFormatter('%(msecs) %(name) %(message)')
+        defaultFormatter = CustomFormatter('%(asctime) %(name) %(message)')
         f = open(filename, mode='w')
         f.write('['+json.dumps(
             metadata,
