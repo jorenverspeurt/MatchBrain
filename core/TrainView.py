@@ -24,11 +24,11 @@ class TrainView(cocos.layer.ColorLayer):
         self.scene = scene
         self.msg = MessageLayer()
         self.phases = [
-            Phase('DISTRACT', "Look around,\nget distracted", 1, self.nextPhase),
-            Phase('RELAXOPEN', "Relax (with eyes open)", 1, self.nextPhase),
-            Phase('RELAXCLOSED', "Relax (with eyes closed)", 1, self.nextPhase),
-            Phase('CASUAL', "Play casually\n(but towards the objective)", 1, lambda: self.play(1)),
-            Phase('INTENSE', "Match as fast as possible\n(forget the objective)", 1, lambda: self.play(0))
+            Phase('DISTRACT', "Look around,\nget distracted", 30, self.nextPhase),
+            Phase('RELAXOPEN', "Relax (with eyes open)", 30, self.nextPhase),
+            Phase('RELAXCLOSED', "Relax (with eyes closed)", 30, self.nextPhase),
+            Phase('CASUAL', "Play casually\n(but towards the objective)", 3, lambda: self.play(1)),
+            Phase('INTENSE', "Match as fast as possible\n(forget the objective)", 3, lambda: self.play(0))
         ]
         self.phase = 0
         self.phaseLogger = logging.getLogger('data.train.phase')
