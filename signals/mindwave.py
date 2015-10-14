@@ -35,19 +35,24 @@ class MeasurementBuilder:
         self.unseen = ['noise', 'attention', 'meditation', 'eeg', 'blink']
 
     def add_measurement(self, datapoint):
+        #j By default just override the previous measurement...
         if isinstance(datapoint, PoorSignalLevelDataPoint):
             self.building['meta']['noise'] = datapoint.amountOfNoise
             self.building['meta']['contact'] = datapoint.headSetHasContactToSkin()
-            self.unseen.remove('noise')
+            if 'noise' in self.unseen:
+                self.unseen.remove('noise')
         elif isinstance(datapoint, AttentionDataPoint):
             self.building['eSense']['attention'] = datapoint.attentionValue
-            self.unseen.remove('attention')
+            if 'attention' in self.unseen:
+                self.unseen.remove('attention')
         elif isinstance(datapoint, MeditationDataPoint):
             self.building['eSense']['meditation'] = datapoint.meditationValue
-            self.unseen.remove('meditation')
+            if 'meditation' in self.unseen:
+                self.unseen.remove('meditation')
         elif isinstance(datapoint, BlinkDataPoint):
             self.building['meta']['blink'] = datapoint.blinkValue
-            self.unseen.remove('blink')
+            if 'blink' in self.unseen:
+                self.unseen.remove('blink')
         elif isinstance(datapoint, EEGPowersDataPoint):
             self.building['bands'] = {'delta': datapoint.delta,
                                       'theta': datapoint.theta,
@@ -57,7 +62,8 @@ class MeasurementBuilder:
                                       'highBeta': datapoint.highBeta,
                                       'lowGamma': datapoint.lowGamma,
                                       'highGamma': datapoint.midGamma}
-            self.unseen.remove('eeg')
+            if 'eeg' in self.unseen:
+                self.unseen.remove('eeg')
         elif isinstance(datapoint, RawDataPoint):
             self.building['raw'].append(datapoint._readRawValue())
         else:
@@ -84,7 +90,8 @@ class MeasurementBuilder:
 class BrainWaveSource(Source):
     def __init__(self):
         Source.__init__(self, self.get_dict().next, shouldPull= self.has_fresh)
-        self.mindwaveDataPointReader = MindwaveDataPointReader()
+        self.logger = logging.getLogger('bws')
+        self.mindwaveDataPointReader = MindwaveDataPointReader(self.logger)
         self.mindwaveDataPointReader.start()
         self.finished = False
         self.history = {}
@@ -93,11 +100,16 @@ class BrainWaveSource(Source):
         "Synchronous (!) method to get the next set of brainwave measurements from the sensor"
         while True:
             builder = MeasurementBuilder()
+            self.logger.debug('have builder')
             self.finished = False
             while not self.finished:
+                self.logger.debug('building')
                 datapoint = self.mindwaveDataPointReader.readNextDataPoint()
+                self.logger.debug('datapoint read')
                 builder.add_measurement(datapoint)
+                self.logger.debug('measurement added')
                 if builder.is_finished():
+                    self.logger.debug('finished building')
                     #builder.print_canonical()
                     self.record(builder.get_dict())
                     self.finished = True

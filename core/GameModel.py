@@ -77,7 +77,12 @@ class GameModel(pyglet.event.EventDispatcher):
         Fills the tile_grid with random tiles
         """
         for elem in [x[1] for x in self.tile_grid.values()]:
-            self.view.remove(elem)
+            try:
+                self.view.remove(elem)
+            except Exception as e:
+                self.stateLogger.exception(e.message)
+                #j BUG: I think sometimes the game tries to remove tiles that have already been removed
+                #       due to a match... This doesn't occur very often. Probably some race condition.
         tile_grid = {}
         # Fill the data matrix with random tile types
         while True:  # Loop until we have a valid table (no imploding lines)

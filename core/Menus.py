@@ -10,8 +10,9 @@ c = Colors()
 f = Fonts()
 
 class MainMenu(Menu):
-    def __init__(self):
+    def __init__(self, test=False):
         super(MainMenu, self).__init__('MatchBrain')
+        self.test = test
 
         defont = f.default
 
@@ -27,7 +28,6 @@ class MainMenu(Menu):
         self.font_item_selected['font_size'] = f.size_selected
         self.font_item_selected['color'] = c.green
 
-
         # example: menus can be vertical aligned and horizontal aligned
         self.menu_anchor_y = CENTER
         self.menu_anchor_x = CENTER
@@ -35,7 +35,7 @@ class MainMenu(Menu):
         items = []
 
         items.append(MenuItem('New Game', self.on_new_game))
-        # items.append( MenuItem('Options', self.on_options) )
+        #items.append( MenuItem('Options', self.on_options) )
         #items.append( MenuItem('Scores', self.on_scores) )
         items.append(MenuItem('Train', self.on_train))
         items.append(MenuItem('Quit', self.on_quit))
@@ -54,7 +54,7 @@ class MainMenu(Menu):
     def on_train(self):
         import TrainView
 
-        director.push(TrainView.get_new_trainer())
+        director.push(TrainView.get_new_trainer(self.test))
 
     def on_scores(self):
         self.parent.switch_to(2)

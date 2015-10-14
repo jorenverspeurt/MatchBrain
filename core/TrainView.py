@@ -19,16 +19,18 @@ Phase = namedtuple('Phase', ['name', 'msg', 'duration', 'callback'])
 class TrainView(cocos.layer.ColorLayer):
     is_event_handler = True
 
-    def __init__(self, scene):
+    def __init__(self, scene, test=False):
         cocos.layer.ColorLayer.__init__(self, 0, 0, 0, 0)
         self.scene = scene
         self.msg = MessageLayer()
+        longMsg = 30 if not test else 3
+        shortMsg = 3 if not test else 1
         self.phases = [
-            Phase('DISTRACT', "Look around,\nget distracted", 30, self.nextPhase),
-            Phase('RELAXOPEN', "Relax (with eyes open)", 30, self.nextPhase),
-            Phase('RELAXCLOSED', "Relax (with eyes closed)", 30, self.nextPhase),
-            Phase('CASUAL', "Play casually\n(but towards the objective)", 3, lambda: self.play(1)),
-            Phase('INTENSE', "Match as fast as possible\n(forget the objective)", 3, lambda: self.play(0))
+            Phase('DISTRACT', "Look around,\nget distracted", longMsg, self.nextPhase),
+            Phase('RELAXOPEN', "Relax (with eyes open)", longMsg, self.nextPhase),
+            Phase('RELAXCLOSED', "Relax (with eyes closed)", longMsg, self.nextPhase),
+            Phase('CASUAL', "Play casually\n(but towards the objective)", shortMsg, lambda: self.play(1)),
+            Phase('INTENSE', "Match as fast as possible\n(forget the objective)", shortMsg, lambda: self.play(0))
         ]
         self.phase = 0
         self.phaseLogger = logging.getLogger('data.train.phase')
@@ -54,11 +56,9 @@ class TrainView(cocos.layer.ColorLayer):
         director.director.push(game)
 
 
-def get_new_trainer():
+def get_new_trainer(test=False):
     scene = Scene()
-    view = TrainView(scene)
+    view = TrainView(scene, test=test)
     scene.add(view.msg, z=2, name='hud')
     scene.add(view, z=1, name='trainview')
     return scene
-
-

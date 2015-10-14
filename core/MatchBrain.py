@@ -17,11 +17,11 @@ from signals.primitive import LogSink
 
 version = 0.2
 
-def setup():
+def setup(test=False):
     director.director.init(width=800, height=700, caption='MatchBrain')
     scene = Scene()
     scene.add(MultiplexLayer(
-        MainMenu(),
+        MainMenu(test),
     ), z = 1)
     return scene
 
@@ -33,26 +33,31 @@ def cleanup():
 
 if __name__ == '__main__':
     # (Data) logging stuff
-    guineaPig = raw_input('Enter nickname: ')
+    nickname = raw_input('Enter nickname: ')
+    test = nickname == 'test'
     rootLogger = logging.getLogger()
-    rootLogger.setLevel(logging.DEBUG)
+    rootLogger.setLevel(logging.INFO)
     rootHandler = logging.StreamHandler()
     rootLogger.addHandler(rootHandler)
     dataLogger = logging.getLogger('data')
     dataLogger.setLevel(logging.INFO)
     jsonHandler = CustomHandler(
-        '../logs/'+guineaPig+dt.now().strftime('%Y-%m-%dT%H:%M')+'.json',
-        {'nick': guineaPig, 'startTime': dt.now(), 'version': version})
+        '../logs/'+nickname+dt.now().strftime('%Y-%m-%dT%H:%M')+'.json',
+        {'nick': nickname, 'startTime': dt.now(), 'version': version})
     dataLogger.addHandler(jsonHandler)
     bwSource = BrainWaveSource()
     bwSink = LogSink(bwSource, logging.getLogger('data.brainwave'))
     def bwUpdate(source, sink, seconds):
+        dataLogger.debug('before internal')
         def internal():
             next_call = time.time()
             while True:
+                dataLogger.debug('internal 1')
                 next_call = next_call + seconds
                 source.push()
+                dataLogger.debug('internal pushed')
                 sink.pull()
+                dataLogger.debug('internal pulled')
                 time.sleep(abs(next_call - time.time())) #DIRTY
         return internal
     timer = threading.Thread(target = bwUpdate(bwSource, bwSink, 1))
@@ -61,5 +66,5 @@ if __name__ == '__main__':
     # Start the game!
     pyglet.resource.path = ['../resources']
     pyglet.resource.reindex()
-    game(scene=setup())
+    game(scene=setup(test))
     cleanup()
