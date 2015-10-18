@@ -28,7 +28,6 @@ class GameView(cocos.layer.ColorLayer):
                                  , self.on_game_over
                                  , self.on_level_completed)
         self.model.start()
-        self.hud.set_objectives(self.model.objectives)
         self.hud.show_message('GET READY')
 
     def on_update_objectives(self):

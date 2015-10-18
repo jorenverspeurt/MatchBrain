@@ -4,30 +4,43 @@
         - (Enquete)
         - Ingeven nickname
         - Calibratie(/"training")
+            - 30s afleiding
+            - 30s ontspanning
+            - 30s ogen dicht
+            - casual spelen
+            - intens spelen
         - Spelen
-            - Beperkt aantal objectives?
-            - Volledig statisch (zelfs predetermined drops?)
-            - Gerandomiseerde volgorde objectives?
-        - Evaluatie? Spelen? Evaluatie?
-        - ...
-        - Vrij spel?
+            - Beperkt aantal objectives? -> Alleen built-in!
+            - Volledig statisch (zelfs predetermined drops?) -> vaste diff.
+            - Gerandomiseerde volgorde objectives? -> NVT
+        - Vrij spel? -> Nee.
     - Verworven data
         - Enquete
         - Calibratie
-        - Continue speel data
-        - Evaluaties?
-        - Free time data?
+        - Continue speel data? -> Nee.
+        - Evaluaties? -> Nee.
+        - Free time data? -> Nee.
+- 2
+    - Verloop
+        - Training tot volledig gecalibreerd
+        - Spelen met vooraf vastgelegde difficulty curves
+        - Evaluaties na spelen
+        - ...?
+    - Verworven data
+        - difficulty <-> "toestand" <-> evaluatie
+        - training encoder
+        - training classifier
 
 
 # Essentieel
 - Verwerking enquete (fase 1)
     - Google docs -> JSON
-- Simulator (fase 1? - )
+- Simulator (fase 1? - ) *tegen 14/10*
     - Aantal matches vinden
     - Mogelijke puzzel objectives vinden + grading
     - Actie objectives grading (curve?)
     - Bepaling drops om moeilijkheidsgraad te beinvloeden?
-+ Logging (fase 1 - )
++ Logging (fase 1 - ) 
     + Toevoegen!
     + Integreer bw + spel data (+ debugging, ...?)
 - Stages (fase 1 - )
@@ -35,8 +48,8 @@
     + Calibratie (fase 1)
     - (Spel)
     - Evaluatie? (fase 1? 2?) *tegen 9/10*
-- Objectives (fase 1/2 - )
-    - Oud systeem er uit smijten *tegen 14/10*
+- Objectives (fase 2 - )
+    + Oud systeem er uit smijten *tegen 14/10*
     - Events bij maken die kunnen geinterpreteerd worden door nieuwe objectives *tegen 14/10*
     - Aantal objectives maken *tegen 21/10*
         - Actie
@@ -58,7 +71,7 @@
 - ML (fase 2 - )
     - SDA
         - Implementeren (theano? caffe? ...) *tegen 9/10*
-        - Trainen op fase 1 data (compleet) *tegen 14/10*
+        - Trainen op fase 1 data (compleet) *tegen 18/10*
         - Trainen op fase 2 data *tegen 28/10*
         - ...
     - RNN
@@ -75,5 +88,5 @@
 - Additionele mechanismes
     - Drop to bottom
     - Bommen
-    - Timed fruit
-    - 
+    - Timed fruit?
+    - (zie Candy Crush / Bejeweled?)
