@@ -48,6 +48,7 @@ if __name__ == '__main__':
             {'nick': nickname, 'startTime': dt.now(), 'version': version})
         dataLogger.addHandler(jsonHandler)
         bwSource = BrainWaveSource()
+        #bwSource.push()
         bwSink = LogSink(bwSource, logging.getLogger('data.brainwave'))
         def bwUpdate(source, sink, seconds):
             dataLogger.debug('before internal')
@@ -62,7 +63,7 @@ if __name__ == '__main__':
                     dataLogger.debug('internal pulled')
                     time.sleep(abs(next_call - time.time())) #DIRTY
             return internal
-        timer = threading.Thread(target = bwUpdate(bwSource, bwSink, 1))
+        timer = threading.Thread(target = bwUpdate(bwSource, bwSink, 0.5))
         timer.daemon = True
         timer.start()
     # Start the game!

@@ -12,9 +12,10 @@ from cocos import director
 from HUD import MessageLayer
 from GameView import get_newgame
 
-__all__ = ['get_newtrainer']
+__all__ = ['get_newtrainer', 'phase_names']
 
 Phase = namedtuple('Phase', ['name', 'msg', 'duration', 'callback'])
+phase_names = ['DISTRACT', 'RELAXOPEN', 'RELAXCLOSED', 'CASUAL', 'INTENSE']
 
 class TrainView(cocos.layer.ColorLayer):
     is_event_handler = True
@@ -32,6 +33,7 @@ class TrainView(cocos.layer.ColorLayer):
             Phase('CASUAL', "Play casually\n(but towards the objective)", shortMsg, lambda: self.play(1)),
             Phase('INTENSE', "Match as fast as possible\n(forget the objective)", shortMsg, lambda: self.play(0))
         ]
+        assert all(name in self.phases for name in phase_names) #selfcheck...
         self.phase = 0
         self.phaseLogger = logging.getLogger('data.train.phase')
         self.nextPhase()

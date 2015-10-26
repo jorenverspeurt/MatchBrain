@@ -177,25 +177,34 @@ class Transformer(Debuggable):
         self.subscribers.append(sub)
 
 
-class Process:
+class SignalBlock:
     """
-    A Process is a signal graph from a set of sources to a set of sinks.
-    Running a process causes updated values to be sent to the sinks if necessary.
+    A SignalBlock is a signal graph from a set of sources to a set of sinks.
+    Activating a process causes updated values to be sent to the sinks if necessary.
     """
 
-    def __init__(self, sources, connections, sinks):
+    def __init__(self, sources, sinks):
         """
+        A constructor that takes pre-setup sources and sinks.
         :param sources: A dict of named sources
-        :param connections: A graph representation: for every primary and secondary source the appropriate sink is
-        specified in a dictionary
         :param sinks: A dict of named sinks
         """
         self.sources = sources.values()
         self.sinks = sinks.values()
-        self.graph = []
-        # If the sources are connected directly to sinks in the connection dict (why?) make trivial pipes
-        for source in sources:
-            for sconn in connections[source]:
-                if sconn in sinks.iterkeys():
-                    self.graph.append(Transformer(sources[source], (lambda x: x), sinks))
-        #TODO complete graph building
+
+    def activate(self):
+        for s in self.sources:
+            s.push()
+        for s in self.sinks:
+            s.pull()
+
+    def build_block(self, description):
+        """
+        Takes a (json) dict description of a signal graph,
+        constructs appropriate sources, transformers and sinks,
+        puts the sources and sinks in a new SignalBlock.
+        :param description: A dictionary with names as keys and objects with type and connections as values
+        :return: A SignalBlock that follows the description given in description
+        """
+        pass
+
