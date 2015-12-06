@@ -1,7 +1,7 @@
-from cocos.menu import *
-from cocos.director import director
-from cocos.scenes.transitions import *
 import pyglet
+from cocos.director import director
+from cocos.menu import *
+from cocos.scenes.transitions import *
 
 from Resources import Colors
 from Resources import Fonts
@@ -44,7 +44,10 @@ class MainMenu(Menu):
 
     def on_new_game(self):
         import GameView
+        import logging
 
+        phaseLogger = logging.getLogger('data.train.phase')
+        phaseLogger.info('NEWGAME')
         director.push(FlipAngular3DTransition(
             GameView.get_newgame(), 1.5))
 

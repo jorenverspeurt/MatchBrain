@@ -1,17 +1,17 @@
 __author__ = 'joren'
 
 import logging
-from datetime import datetime as dt
-import time
 import threading
+import time
+from datetime import datetime as dt
 
 import pyglet.resource
 from cocos import director
-from cocos.scene import Scene
 from cocos.layer import MultiplexLayer
+from cocos.scene import Scene
 
-from Menus import MainMenu
 from LogHelpers import CustomHandler
+from Menus import MainMenu
 from signals.mindwave import BrainWaveSource
 from signals.primitive import LogSink
 
@@ -53,17 +53,17 @@ if __name__ == '__main__':
         def bwUpdate(source, sink, seconds):
             dataLogger.debug('before internal')
             def internal():
-                next_call = time.time()
+                #next_call = time.time()
                 while True:
                     dataLogger.debug('internal 1')
-                    next_call = next_call + seconds
+                    #next_call = next_call + seconds
                     source.push()
                     dataLogger.debug('internal pushed')
                     sink.pull()
                     dataLogger.debug('internal pulled')
-                    time.sleep(abs(next_call - time.time())) #DIRTY
+                    time.sleep(seconds) #abs(next_call - time.time())) #DIRTY
             return internal
-        timer = threading.Thread(target = bwUpdate(bwSource, bwSink, 0.5))
+        timer = threading.Thread(target = bwUpdate(bwSource, bwSink, 1))
         timer.daemon = True
         timer.start()
     # Start the game!

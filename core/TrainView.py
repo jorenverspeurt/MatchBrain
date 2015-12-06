@@ -6,11 +6,11 @@ from collections import namedtuple
 
 import cocos
 import cocos.layer
-from cocos.scene import Scene
 from cocos import director
+from cocos.scene import Scene
 
-from HUD import MessageLayer
 from GameView import get_newgame
+from HUD import MessageLayer
 
 __all__ = ['get_newtrainer', 'phase_names']
 
@@ -33,7 +33,7 @@ class TrainView(cocos.layer.ColorLayer):
             Phase('CASUAL', "Play casually\n(but towards the objective)", shortMsg, lambda: self.play(1)),
             Phase('INTENSE', "Match as fast as possible\n(forget the objective)", shortMsg, lambda: self.play(0))
         ]
-        assert all(name in self.phases for name in phase_names) #selfcheck...
+        assert all(name in [phase.name for phase in self.phases] for name in phase_names) #selfcheck...
         self.phase = 0
         self.phaseLogger = logging.getLogger('data.train.phase')
         self.nextPhase()

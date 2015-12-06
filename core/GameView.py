@@ -3,17 +3,15 @@ import cocos.layer
 from cocos.director import director
 from cocos.scene import Scene
 
-from HUD import HUD
-from GameModel import GameModel
 from GameController import GameController
-from status import status
+from GameModel import GameModel
+from HUD import HUD
 from Resources import Colors
+from status import status
 
 c = Colors()
 
-
 __all__ = ['get_newgame']
-
 
 class GameView(cocos.layer.ColorLayer):
     is_event_handler = True  #: enable director.window events
@@ -41,7 +39,6 @@ class GameView(cocos.layer.ColorLayer):
 
     def on_level_completed(self):
         self.hud.show_message('LEVEL COMPLETED', msg_duration=3, callback=lambda: self.model.set_next_level())
-
 
 
 def get_newgame(level = 1):

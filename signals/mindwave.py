@@ -1,11 +1,9 @@
 __author__ = 'joren'
 
-import datetime as dt
 import json
 
-from mindwavemobile.MindwaveDataPoints import *
 from mindwavemobile.MindwaveDataPointReader import MindwaveDataPointReader
-
+from mindwavemobile.MindwaveDataPoints import *
 from signals.primitive import *
 
 
@@ -89,12 +87,13 @@ class MeasurementBuilder:
 
 class BrainWaveSource(Source):
     def __init__(self):
-        Source.__init__(self, self.get_dict().next, shouldPull= self.has_fresh)
+        Source.__init__(self, self.get_dict().next)
         self.logger = logging.getLogger('bws')
-        self.mindwaveDataPointReader = MindwaveDataPointReader(self.logger)
+        self.mindwaveDataPointReader = MindwaveDataPointReader()
         self.mindwaveDataPointReader.start()
         self.finished = False
-        self.history = {}
+        self.initialized = False
+        self.started = False
 
     def get_dict(self):
         "Synchronous (!) method to get the next set of brainwave measurements from the sensor"
@@ -103,23 +102,37 @@ class BrainWaveSource(Source):
             self.logger.debug('have builder')
             self.finished = False
             while not self.finished:
-                self.logger.debug('building')
                 datapoint = self.mindwaveDataPointReader.readNextDataPoint()
                 self.logger.debug('datapoint read')
                 builder.add_measurement(datapoint)
                 self.logger.debug('measurement added')
                 if builder.is_finished():
                     self.logger.debug('finished building')
-                    #builder.print_canonical()
-                    self.record(builder.get_dict())
+                    measurement = builder.get_dict()
                     self.finished = True
-                    yield builder.get_dict()
-
-    def has_fresh(self):
-        return True #self.finished
-
-    def record(self, value):
-        self.history[str(dt.datetime.now())] = value
+                    if not self.initialized:
+                        self.logger.debug("Not yet initialized")
+                        if not measurement['meta']['noise'] == 25:
+                            self.initialized = True
+                    else:
+                        yield measurement
 
     def select(self, selector):
         return Transformer([self], {self.getName(): 'd'}, lambda d: d and d[selector])
+
+    def start(self):
+        self.started = True
+        parent = self
+        def internal():
+            while parent.started:
+                if parent.finished:
+                    parent.push()
+                    time.sleep(1)
+                else:
+                    time.sleep(0.1)
+        self.t = Thread(target=internal)
+        self.t.daemon = True
+        self.t.start()
+
+    def stop(self):
+        self.started = False

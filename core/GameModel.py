@@ -1,13 +1,13 @@
 __all__ = ['GameModel']
 
-from random import choice, randint
-from math import log
-from glob import glob
 import logging
+from glob import glob
+from math import log
+from random import choice, randint
 
 import pyglet
-from cocos.sprite import Sprite
 from cocos.actions import *
+from cocos.sprite import Sprite
 
 from status import status
 
@@ -38,6 +38,20 @@ class GameModel(pyglet.event.EventDispatcher):
         self.scoreLogger = logging.getLogger('data.game.score')
         self.objectiveLogger = logging.getLogger('data.game.objective')
         self.max_play_time = 60
+        self.ticking = False
+
+    def set_tick(self, bool, interval=1):
+        """
+        To prevent multiple tick timers from being scheduled all access to them must go through this method
+        :param bool: Whether the model should have a scheduled tick timer or not
+        :param interval: Optional interval length
+        """
+        if self.ticking != bool:
+            if bool:
+                pyglet.clock.schedule_interval(self.time_tick, interval)
+            else:
+                pyglet.clock.unschedule(self.time_tick)
+            self.ticking = bool
 
     @property
     def game_state(self):
@@ -63,15 +77,15 @@ class GameModel(pyglet.event.EventDispatcher):
                 self.view.remove(elem)
         self.fill_with_random_tiles()
         self.set_objectives()
-        pyglet.clock.unschedule(self.time_tick)
-        pyglet.clock.schedule_interval(self.time_tick, 1)
+        self.set_tick(False)
+        self.set_tick(True)
         self.game_state = WAITING_PLAYER_MOVEMENT
 
     def time_tick(self, delta):
         self.play_time -= 1
         self.dispatch_event("on_update_time", self.play_time/float(self.max_play_time))
         if self.play_time == 0:
-            pyglet.clock.unschedule(self.time_tick)
+            self.set_tick(False)
             self.game_state = GAME_OVER
             self.dispatch_event("on_game_over")
 
@@ -151,11 +165,11 @@ class GameModel(pyglet.event.EventDispatcher):
                                   , '3kinds': {obj[0]: obj[2] for obj in self.objectives}})
         if len(self.imploding_tiles) > 0:
             self.game_state = IMPLODING_TILES  # Wait for the implosion animation to finish
-            pyglet.clock.unschedule(self.time_tick)
+            self.set_tick(False)
         else:
             if not self.game_state == NEXT_LEVEL:
                 self.game_state = WAITING_PLAYER_MOVEMENT
-            pyglet.clock.schedule_interval(self.time_tick, 1)
+            self.set_tick(True)
         return self.imploding_tiles
 
     def drop_groundless_tiles(self):
@@ -201,7 +215,7 @@ class GameModel(pyglet.event.EventDispatcher):
             self.dispatch_event("on_update_objectives")
             self.drop_groundless_tiles()
             if len(self.objectives) == 0:
-                pyglet.clock.unschedule(self.time_tick)
+                self.set_tick(False)
                 if status.level:
                     status.level += 1
                 self.game_state = NEXT_LEVEL
@@ -293,6 +307,11 @@ class GameModel(pyglet.event.EventDispatcher):
         # Remove duplicates
         all_line_members = list(set(all_line_members))
         return all_line_members
+
+    def on_key_press(self, key):
+        # To be able te recover if a test subject triggers a bug where the playing field freezes
+        if key == pyglet.window.key.NUM_ENTER:
+            self.game_state = WAITING_PLAYER_MOVEMENT
 
     def on_mouse_press(self, x, y):
         if self.game_state == WAITING_PLAYER_MOVEMENT or self.game_state == PLAYER_DOING_MOVEMENT:

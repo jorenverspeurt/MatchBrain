@@ -1,7 +1,7 @@
 import logging
 
-from cocos.layer import Layer
 import pyglet.window.key
+from cocos.layer import Layer
 
 
 class GameController(Layer):
@@ -25,3 +25,4 @@ class GameController(Layer):
     def on_key_press(self, key, modifiers):
         symbol = pyglet.window.key.symbol_string(key)
         self.keyLogger.info(symbol)
+        self.model.on_key_press(key)
