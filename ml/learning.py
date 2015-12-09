@@ -1,8 +1,12 @@
 from __future__ import print_function
 
+import datetime as dt
+import gzip
 import json
 import logging
+import pickle
 import time
+from itertools import repeat
 
 import keras.layers.containers as containers
 import keras.layers.core as core
@@ -186,8 +190,10 @@ class AutoTransformer(Transformer):
                 ,bw_source
                 ,ph_source = Source(lambda: None)
                 ,mode = TRAINING
-                ,batch_size = 16
-                ,epochs = 30
+                ,batch_size = 60
+                ,epochs = 20
+                ,encdec_optimizer = 'rmsprop'
+                ,class_optimizer = 'adadelta'
                 ,weights_name = 'latest'):
         if mode is AutoTransformer.TUNING: raise ValueError("Can't instantiate an AT in 'tuning' mode")
         self.mode = mode.instantiate(self, [bw_source, ph_source]) # Source order matters!
@@ -195,15 +201,17 @@ class AutoTransformer(Transformer):
         self.epochs = epochs
         self.bw_source = bw_source
         self.ph_source = ph_source
-        self.layer_sizes = [input_dim] + [64, 32, 16, 8]
+        self.layer_sizes = [input_dim] + [64, 32, 16]
         self.enc_decs = []
         self.current_batch = [[] for i in range(batch_size)]
-        self.past_batches = []
+        self.previous_data = {}
         self.current_phase = phase_names[0]
         self.batched = 0
         self.model = None
         self.weight_file = self.model_dir + self.prefix + weights_name
         self.maxes = self.get_from_catalog("maxes", weights_name) or np.ones(input_dim)
+        self.enc_opt = encdec_optimizer
+        self.cls_opt = class_optimizer
         Transformer.__init__(self
                             ,self.mode.sources
                             ,self.mode.t_assignments
@@ -224,31 +232,29 @@ class AutoTransformer(Transformer):
 
     def training_transform(self, bw, ph):
         self.tuning_transform(bw, ph)
-        if self.batched == self.batch_size:
-            #print(self.current_batch)
-            X_l = np.array(map(np.array, self.current_batch))
-            for (lay, ae) in enumerate(self.enc_decs):
-                loss = ae.train_on_batch(X_l, X_l)
-                logger.info({"training_loss_pre_"+str(lay): {self.getName(): loss}})
-                X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
-            self.past_batches.append((self.current_batch, self.current_phase))
-            # Note: this means that batches where the phase changes at the end are tagged as the new phase,
-            # not the old one... Which is probably wildly inaccurate.
-            self.batched = 0
-            return X_l
-        else:
-            return None
-            # Is this necessary or even useful?
-            #x_l = np.array(bw)
-            #for ae in self.enc_decs:
-            #    x_l = ae.predict(x_l, batch_size=1, verbose=0)
-            #return x_l
+        #if self.batched == self.batch_size:
+        #    X_l = np.array(map(np.array, self.current_batch))
+        #    for (lay, ae) in enumerate(self.enc_decs):
+        #        loss = ae.train_on_batch(X_l, X_l)
+        #        logger.info({"training_loss_pre_"+str(lay): {self.getName(): loss}})
+        #        X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
+        #    self.batched = 0
+        #    return X_l
+        #else:
+        #    return None
+        #    # Is this necessary or even useful?
+        #    #x_l = np.array([bw])
+        #    #for ae in self.enc_decs:
+        #    #    x_l = ae.predict(x_l, batch_size=1, verbose=0)
+        #    #return x_l
 
     def tuning_transform(self, bw, ph):
-        self.maxes = np.maximum(self.maxes, np.abs(bw))
-        self.current_batch = self.current_batch[1:]+[np.divide(bw, self.maxes)]
-        self.batched += 1
         self.current_phase = ph
+        #self.maxes = np.maximum(self.maxes, np.abs(bw))
+        scaled = np.divide(bw, self.maxes)
+        self.current_batch = self.current_batch[1:]+[scaled]
+        self.batched += 1
+        self.previous_data.setdefault(self.current_phase, []).append(scaled)
         return None
 
     def using_transform(self, bw):
@@ -265,23 +271,34 @@ class AutoTransformer(Transformer):
             self.subscriptions = {s : False for s in self.subscriptions.keys()}
 
     #TODO make this run in a separate thread? See to it that all incoming signals are handled correctly during
-    def finetune(self):
+    def finetune(self, train_encdecs = True):
         self.change_mode(self.TUNING)
+        if train_encdecs:
+            X_l = np.array(sum(self.previous_data.values(), []))
+            for (lay, ae) in enumerate(self.enc_decs):
+                loss = ae.fit(X_l, X_l, batch_size=self.batch_size, nb_epoch=self.epochs, show_accuracy=True)
+                logger.info({"training_loss_pre_"+str(lay): {self.getName(): loss}})
+                X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
+            self.save_encdecs(dt.datetime.now().strftime('%y%m%d-%H%M%S'))
+            self.save_encdecs()
+        else:
+            self.load_encdecs()
         if not self.model:
             self.new_model()
-        batches, phases = zip(*self.past_batches)
+        measurements, phases = zip(*[(m,p) for p in self.previous_data for m in self.previous_data[p]])
         X_train, X_test, y_train, y_test = train_test_split(
-            map(np.array, batches),
+            map(np.array, measurements),
             np_utils.to_categorical(map(
                 lambda n: phase_names.index(n),
                 phases)), #[p for p in phases for i in range(self.batch_size)])),
             test_size=0.1
         )
-        print(type(np.array(y_train)))
-        self.model.fit(np.array(X_train), y_train, batch_size=self.batch_size, nb_epoch=self.epochs, #GUESS
-                       show_accuracy=bool(self.enc_decs), validation_data=(X_test, y_test))
-        score = self.model.evaluate(X_test, y_test, show_accuracy=bool(self.enc_decs), verbose=0)
+        self.model.fit(np.array(X_train), y_train, batch_size=self.batch_size, nb_epoch=self.epochs,
+                       show_accuracy=bool(self.enc_decs), validation_data=(np.array(X_test), y_test))
+        score = self.model.evaluate(np.array(X_test), y_test, show_accuracy=bool(self.enc_decs), verbose=0)
         logger.info({"finetune_score": score})
+        self.save_model(dt.datetime.now().strftime('%y%m%d-%H%M%S'))
+        self.save_model()
         self.change_mode(self.USING)
 
     def change_mode(self, new_mode):
@@ -301,23 +318,27 @@ class AutoTransformer(Transformer):
             ae.add(core.AutoEncoder(encoder=enc, decoder=dec,
                                     output_reconstruction=False))
             if compile:
-                ae.compile(loss='mse', optimizer='rmsprop')
+                ae.compile(loss='mse', optimizer=self.enc_opt)
             self.enc_decs.append(ae)
 
     def new_model(self, fresh = False, compile = True):
         self.model = Sequential()
+        noise_cl = core.Dropout
+        noise_par = 0.1
         if self.enc_decs and not fresh:
             for enc in [ae.layers[0].encoder for ae in self.enc_decs]:
                 self.model.add(enc)
+                self.model.add(noise_cl(noise_par))
         else:
             for n_in, n_out in zip(self.layer_sizes[:-1], self.layer_sizes[1:]):
                 self.model.add(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid'))
+                self.model.add(noise_cl(noise_par))
                 #TODO ?
         self.model.add(core.Dense(input_dim=self.layer_sizes[-1]
                                   ,output_dim=len(phase_names)
                                   ,activation='softmax'))
         if compile:
-            self.model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+            self.model.compile(loss='categorical_crossentropy', optimizer=self.cls_opt)
 
     def load_model(self, f_name = None):
         if not self.model() and not f_name:
@@ -359,32 +380,55 @@ class AutoTransformer(Transformer):
             base = (self.model_dir + self.prefix + f_name) if f_name else self.weight_file
             name = base + '_ed_' + str(i)
             ed.load_weights(name)
-            ed.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+            ed.compile(loss='mse', optimizer=self.enc_opt)
+            # TODO add things like optimizer chosen to catalog
+
+    def load_data(self): #TODO load latest or named
+        with gzip.open(self.model_dir + self.prefix + "data" +
+                               dt.datetime.now().strftime('%y%m%d-%H%M%S') + ".pkl.gz", 'rb') as f:
+            self.previous_data = pickle.load(f)
+
+    def save_data(self): #TODO copy to 'latest'
+        with gzip.open(self.model_dir + self.prefix + "data" +
+                               dt.datetime.now().strftime('%y%m%d-%H%M%S') + ".pkl.gz", 'wb') as f:
+            pickle.dump(self.previous_data, f)
 
 
 
 # TODO write tests for AutoTransformer
-# TODO train an AT on previous data
-# TODO find out where the increasing training loss after restoring weights comes from
 if __name__ == '__main__':
     l = LogSourceMaker()
-    b = l.get_block()
+    b = l.get_block(shift = 4)
     bws = b.sources[0]
     phs = b.sources[1]
     prep = Preprocessing(bws)
     logger.info("prep output dim: "+str(prep.output_dim))
-    ae = AutoTransformer(prep.output_dim, prep, phs)
+    ae = AutoTransformer(prep.output_dim, prep, phs, epochs=60, class_optimizer='rmsprop')
     print('have ae')
     #ae.load_encdecs()
     #sink = Sink([ae], lambda r: print(r) if (not r is None) else None)
     #print('have sink')
+    t = 35*4
     b.start()
-    time.sleep(180)
-    b.stop()
+    while b.started and t>0:
+        time.sleep(15)
+        print(ae.batched)
+        t -= 1
+    if b.started:
+        b.stop()
     print('stopped')
-    ae.save_encdecs()
-    ae.finetune()
+    ae.save_data()
+    ae.finetune(train_encdecs=False)
     print('finetuned')
-    ae.save_model()
-    print('saved')
+    # The documentation claims the following should be available, but it isn't...
+    #grapher = keras.utils.dot_utils.Grapher()
+    #grapher.plot(ae.model, 'model.png')
+    for key in ae.previous_data:
+        print(key)
+        bws = ae.previous_data[key]
+        print(ae.model.evaluate(np.array(bws), np_utils.to_categorical(map(lambda n: phase_names.index(n)
+                                                                          ,list(repeat(key, len(bws))))
+                                                                      ,len(phase_names))
+                               ,show_accuracy=True))
+        print(np.sum(map(lambda p: np.identity(len(phase_names))[np.argmax(p)], ae.model.predict(np.array(bws))), axis=0))
 

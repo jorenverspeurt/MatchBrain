@@ -4,11 +4,16 @@ import glob
 import json
 from datetime import datetime, timedelta
 from itertools import repeat
-from random import sample
 
 from core.TrainView import phase_names
 from signals.primitive import GenSource, SignalBlock, Transformer
 
+
+def interp_vals(val1, val2, index, total):
+    return val1 + ( (val2-val1) * (index/total) )
+
+def interp_ls(l1, l2, i):
+    return l1[i:] + l2[0:i]
 
 def loadfile(name):
     with open(name) as f:
@@ -65,9 +70,6 @@ def all_m_to_a():
             new_file.write(json.dumps(without))
     return with_msecs.keys()
 
-def get_phase():
-    pass
-
 class LogSourceMaker(object):
     def __init__(self, clean_seconds = 3):
         all_dict = loadall()
@@ -95,10 +97,16 @@ class LogSourceMaker(object):
                                                        ,li["data"]["brainwave"]["raw"]))
         #TODO ?
 
-    def get_block(self):
-        self.ph_source = GenSource(li[0] for rep in repeat(self.raws_per_phase) for li in sample(rep,len(rep)))
-        self.bw_source = GenSource(li[1] for rep in repeat(self.raws_per_phase) for li in sample(rep,len(rep)))
-        result = SignalBlock(
+    def get_block(self, shift = 1):
+        a_meas = self.raws_per_phase[0][1]
+        self.ph_source = GenSource(li[0]
+                                   for rep in repeat(self.raws_per_phase, len(a_meas))
+                                   for li in rep)
+        self.bw_source = GenSource(li
+                                   for i in xrange(0, len(a_meas), shift)
+                                   for li in map(lambda t: interp_ls(t[0][1], t[1][1], i)
+                                                ,zip(self.raws_per_phase[0:-1], self.raws_per_phase[1:])))
+        block = SignalBlock(
             [self.bw_source, self.ph_source],
             [Transformer(
                 [self.bw_source, self.ph_source],
@@ -106,9 +114,9 @@ class LogSourceMaker(object):
                 lambda b,d: (b,d))
             ]
         )
-        self.bw_source.callback = result.stop
-        self.ph_source.callback = result.stop
+        self.bw_source.callback = block.stop
+        self.ph_source.callback = block.stop
         #result.sinks.append(Sink([self.bw_source, self.ph_source], lambda x: print(x)))
-        return result
+        return block
 
 

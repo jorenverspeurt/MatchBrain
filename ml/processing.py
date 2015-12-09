@@ -9,12 +9,6 @@ import pywt
 from signals.primitive import Transformer
 
 
-def interp_vals(val1, val2, index, total):
-    return val1 + ( (val2-val1) * (index/total) )
-
-def interp_ls(l1, l2, i):
-    return l1[i:] + l2[0:i]
-
 def wavelet_trans(l, num_coeffs = 50):
     #TODO binning per decomposition level?
     #TODO explain why db4
@@ -37,6 +31,7 @@ def fix_length(l, length):
     elif len(l) > length:
         return l[0:length+1]
     else:
+        print l
         return l + [0 for i in xrange(length - len(l))]
 
 def fourier_trans(l, f_sample = 512, freq_low = 4, freq_high = 50):
