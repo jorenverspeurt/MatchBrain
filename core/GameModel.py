@@ -24,8 +24,9 @@ NEXT_LEVEL = 'next_level'
 GAME_OVER = 'game_over'
 
 class GameModel(pyglet.event.EventDispatcher):
-    def __init__(self):
+    def __init__(self, hud_offset = 0):
         super(GameModel, self).__init__()
+        self.HUD_OFFSET = hud_offset
         self.tile_grid = {}  # Dict emulated sparse matrix, key: tuple(x,y), value : tile_type
         self.imploding_tiles = []  # List of tile sprites being imploded, used during IMPLODING_TILES
         self.dropping_tiles = []  # List of tile sprites being dropped, used during DROPPING_TILES
@@ -40,18 +41,18 @@ class GameModel(pyglet.event.EventDispatcher):
         self.max_play_time = 60
         self.ticking = False
 
-    def set_tick(self, bool, interval=1):
+    def set_tick(self, on_off, interval=1):
         """
         To prevent multiple tick timers from being scheduled all access to them must go through this method
-        :param bool: Whether the model should have a scheduled tick timer or not
+        :param on_off: Whether the model should have a scheduled tick timer or not
         :param interval: Optional interval length
         """
-        if self.ticking != bool:
-            if bool:
+        if self.ticking != on_off:
+            if on_off:
                 pyglet.clock.schedule_interval(self.time_tick, interval)
             else:
                 pyglet.clock.unschedule(self.time_tick)
-            self.ticking = bool
+            self.ticking = on_off
 
     @property
     def game_state(self):
@@ -80,6 +81,10 @@ class GameModel(pyglet.event.EventDispatcher):
         self.set_tick(False)
         self.set_tick(True)
         self.game_state = WAITING_PLAYER_MOVEMENT
+        if status.level == 0:
+            status.level_idx = "INTENSE"
+        else:
+            status.level_idx = status.level
 
     def time_tick(self, delta):
         self.play_time -= 1
@@ -89,20 +94,23 @@ class GameModel(pyglet.event.EventDispatcher):
             self.game_state = GAME_OVER
             self.dispatch_event("on_game_over")
 
-    def set_objectives(self):
-        objectives = []
-        while len(objectives) < 3:
-            tile_type = choice(self.available_tiles)
-            sprite = self.tile_sprite(tile_type, (0, 0))
-            max = 100 if status.level == 0 else round(5+10*log(status.level))
-            count = randint(1, max)
-            if tile_type not in [x[0] for x in objectives]:
-                objectives.append([tile_type, sprite, count])
-        self.objectiveLogger.info({ 'type': "3kinds"
-                                  , 'duration': 60
-                                  , '3kinds': {obj[0]: obj[2] for obj in objectives}})
-        self.objectives = objectives
-        self.dispatch_event("on_update_objectives")
+    def set_objectives(self, type = "action0", base_difficulty = 0):
+        if True:
+            objectives = []
+            while len(objectives) < 3:
+                tile_type = choice(self.available_tiles)
+                sprite = self.tile_sprite(tile_type, (0, 0))
+                max = 100 if status.level == 0 else round(5+10*log(status.level))
+                count = randint(1, max)
+                if tile_type not in [x[0] for x in objectives]:
+                    objectives.append([tile_type, sprite, count])
+            self.objectiveLogger.info({ 'type': "3kinds"
+                                      , 'duration': 60
+                                      , '3kinds': {obj[0]: obj[2] for obj in objectives}})
+            self.objectives = objectives
+            self.dispatch_event("on_update_objectives")
+        else:
+            pass
 
     def fill_with_random_tiles(self):
         """
@@ -110,6 +118,8 @@ class GameModel(pyglet.event.EventDispatcher):
         """
         #j BUG: I think sometimes the game tries to remove tiles that have already been removed
         #       due to a match... This doesn't occur very often. Probably some race condition.
+        # Possible integral fix: make some sort of set-queue thing for removal jobs, only adding them once
+        # Or make remove fully idempotent, somehow
         for elem in [x[1] for x in self.tile_grid.values() if x]:
             try:
                 if elem:
@@ -118,6 +128,7 @@ class GameModel(pyglet.event.EventDispatcher):
                 self.stateLogger.exception(e.message)
         tile_grid = {}
         # Fill the data matrix with random tile types
+        # TODO make this depend on the difficulty / objective / ... ?
         while True:  # Loop until we have a valid table (no imploding lines)
             for x in range(COLS_COUNT):
                 for y in range(ROWS_COUNT):
@@ -264,10 +275,10 @@ class GameModel(pyglet.event.EventDispatcher):
         :param col:
         :return: (x, y) from display corresponding coordinates from the bi-dimensional ( row, col) array position
         """
-        return CELL_WIDTH / 2 + row * CELL_WIDTH, CELL_HEIGHT / 2 + col * CELL_HEIGHT
+        return CELL_WIDTH / 2 + row * CELL_WIDTH + self.HUD_OFFSET, CELL_HEIGHT / 2 + col * CELL_HEIGHT
 
     def to_model_pos(self, (view_x, view_y)):
-        return view_x / CELL_WIDTH, view_y / CELL_HEIGHT
+        return (view_x - self.HUD_OFFSET) / CELL_WIDTH, view_y / CELL_HEIGHT
 
     def get_same_type_lines(self, tile_grid, min_count=3):
         """

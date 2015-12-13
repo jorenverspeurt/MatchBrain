@@ -24,9 +24,9 @@ def dumpfile(name, data):
     with open(name, 'r') as f:
         f.write(json.dumps(data))
 
-def loadall():
+def loadall(logfolder="/home/joren/PycharmProjects/MatchBrain/logs/"):
     all_files = {}
-    for f in glob.glob("/home/joren/PycharmProjects/MatchBrain/logs/*.json"):
+    for f in glob.glob(logfolder+"*.json"):
         all_files[f] = loadfile(f)
     return all_files
 
@@ -71,8 +71,11 @@ def all_m_to_a():
     return with_msecs.keys()
 
 class LogSourceMaker(object):
-    def __init__(self, clean_seconds = 3):
-        all_dict = loadall()
+    def __init__(self, clean_seconds = 3, logfolder = None):
+        if logfolder:
+            all_dict = loadall(logfolder=logfolder)
+        else:
+            all_dict = loadall()
         self.phases = phase_names
         #self.phases.append('none')
         self.raws_per_phase = []

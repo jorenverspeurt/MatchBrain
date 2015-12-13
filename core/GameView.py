@@ -26,7 +26,7 @@ class GameView(cocos.layer.ColorLayer):
                                  , self.on_game_over
                                  , self.on_level_completed)
         self.model.start()
-        self.hud.show_message('GET READY')
+        self.hud.show_message('GET READY\n')
 
     def on_update_objectives(self):
         self.hud.set_objectives(self.model.objectives)
@@ -35,10 +35,10 @@ class GameView(cocos.layer.ColorLayer):
         self.hud.update_time(time_percent)
 
     def on_game_over(self):
-        self.hud.show_message('GAME OVER', msg_duration=3, callback=lambda: director.pop())
+        self.hud.show_message('GAME OVER\n', msg_duration=3, callback=lambda: director.pop())
 
     def on_level_completed(self):
-        self.hud.show_message('LEVEL COMPLETED', msg_duration=3, callback=lambda: self.model.set_next_level())
+        self.hud.show_message('LEVEL COMPLETED\n', msg_duration=3, callback=lambda: self.model.set_next_level())
 
 
 def get_newgame(level = 1):
@@ -46,7 +46,7 @@ def get_newgame(level = 1):
     status.level = level
 
     scene = Scene()
-    model = GameModel()
+    model = GameModel(hud_offset=director.window.get_size()[0]-800) #MAGIC original width
     controller = GameController(model)
     # view
     hud = HUD()

@@ -13,12 +13,12 @@ from cocos.scene import Scene
 from LogHelpers import CustomHandler
 from Menus import MainMenu
 from signals.mindwave import BrainWaveSource
-from signals.primitive import LogSink
+from signals.primitive import Sink
 
 version = 0.2
 
 def setup(test=False):
-    director.director.init(width=800, height=700, caption='MatchBrain')
+    director.director.init(width=1056, height=700, caption='MatchBrain')
     scene = Scene()
     scene.add(MultiplexLayer(
         MainMenu(test),
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         dataLogger.addHandler(jsonHandler)
         bwSource = BrainWaveSource()
         #bwSource.push()
-        bwSink = LogSink(bwSource, logging.getLogger('data.brainwave'))
+        bwSink = Sink([bwSource], logging.getLogger('data.brainwave').info)
         def bwUpdate(source, sink, seconds):
             dataLogger.debug('before internal')
             def internal():

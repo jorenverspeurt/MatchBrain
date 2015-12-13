@@ -1,26 +1,29 @@
 from __future__ import print_function
 
+import cPickle as pickle
 import datetime as dt
 import gzip
 import json
 import logging
-import pickle
 import time
 from itertools import repeat
+from operator import mul
 
 import keras.layers.containers as containers
 import keras.layers.core as core
-import keras.layers.noise as noise
 import numpy as np
+from keras import backend as K
+from keras.callbacks import ModelCheckpoint, EarlyStopping, Callback
+from keras.layers import noise
 from keras.models import Sequential
-from keras.regularizers import l2
+from keras.optimizers import SGD
 from keras.utils import np_utils
 from sklearn.cross_validation import train_test_split
 
 from core.TrainView import phase_names
 from ml.logutils import LogSourceMaker
 from ml.processing import Preprocessing
-from signals.primitive import Transformer, Accumulator, Source
+from signals.primitive import Transformer, Source
 
 logger = logging.getLogger('learning')
 logger.setLevel(logging.DEBUG)
@@ -28,108 +31,7 @@ logging.basicConfig(level=logging.INFO)
 
 __author__ = 'joren'
 
-class Autoencoder(Transformer):
-    """
-    A first attempt at writing an AutoEncoder Transformer with Keras...
-    """
-    def __init__(self, source, input_dim, train):
-        self.batch_size = 15
-        if train:
-            self.model = Sequential()
-            #T pick good sigma
-            encoder = containers.Sequential(layers=[
-                core.Dropout(0.5, input_shape=(input_dim,))
-            ])
-            dense_opts = {
-                #T magic value
-                'activation': 'sigmoid',
-                #T magic number
-                'W_regularizer': l2(0.01)
-            }
-            enc_others = [
-                core.Dense(
-                    input_dim=input_dim//(2**i),
-                    output_dim=input_dim//(2**(i+1)),
-                    **dense_opts
-                )
-                #T magic number(s)
-                for i in xrange(5) if input_dim//(2**(i+1)) > 8
-            ]
-            enc_others.append(core.Dense(input_dim=enc_others[-1].output_dim, output_dim=8, **dense_opts))
-            for dense in enc_others:
-                encoder.add(dense)
-                #T magic
-                encoder.add(noise.GaussianNoise(1))
-            dec_layers = [
-                core.Dense(
-                    input_dim=dense.output_dim,
-                    output_dim=dense.input_dim,
-                    **dense_opts
-                )
-                for dense in enc_others[::-1]
-            ]
-            decoder = containers.Sequential(layers=dec_layers)
-            self.model.add(core.AutoEncoder(encoder=encoder, decoder=decoder, output_reconstruction=False))
-            self.model.compile(optimizer='adagrad', loss='mse')
-            logger.debug("compiled model")
-            self.raw_source = source
-            accumulator = Accumulator(source, self.batch_size, [0 for i in xrange(self.batch_size)])
-            logger.debug("raw_source: "+source.getName())
-            logger.debug("accumulator: "+accumulator.getName())
-            logger.debug("acc's sources: "+",".join(s.getName() for s in accumulator.subscriptions.keys()))
-            Transformer.__init__(self,
-                                 [accumulator],
-                                 {accumulator.getName(): 'd'},
-                                 lambda d: logger.debug(self.model.train_on_batch(X=d, y=d)))
-            logger.debug("self sources: "+",".join(s.getName() for s in self.subscriptions.keys()))
-        else:
-            pass # Load saved model
-
-#class CholletAutoEncoder(Transformer):
-#    """
-#    An alternative AE based on fchollet's example code
-#    """
-#    def __init__(self, source, input_dim, train):
-#        if train:
-#            self.batch_size = 15
-#            self.epochs = 3
-#            self.layer_sizes = [input_dim] + [512, 256, 128, 64, 32, 16]
-#            first_batch = []
-#            for i in range(self.batch_size):
-#                source.push(self)
-#                first_batch.append(np.array(source.pull()))
-#                print(i)
-#                time.sleep(1)
-#            # Layer-wise pre-training
-#            trained_encoders = []
-#            X_tmp = first_batch
-#            for n_in, n_out in zip(self.layer_sizes[:-1], self.layer_sizes[1:]):
-#                logger.debug("Pretraining: Input {} -> Output {}".format(n_in,n_out))
-#                ae = Sequential()
-#                enc = containers.Sequential([core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid')])
-#                dec = containers.Sequential([core.Dense(input_dim=n_out, output_dim=n_in, activation='sigmoid')])
-#                ae.add(core.AutoEncoder(encoder=enc, decoder=dec,
-#                                        output_reconstruction=False, tie_weights=True))
-#                ae.compile(loss='mse', optimizer='rmsprop')
-#                ae.fit(X_tmp, X_tmp, batch_size=self.batch_size, nb_epoch=self.epochs)
-#                trained_encoders.append(ae.layers[0].encoder)
-#                X_tmp = ae.predict(X_tmp)
-#            # Further training
-#            self.model = Sequential()
-#            for encoder in trained_encoders:
-#                self.model.add(encoder)
-#            self.model.add(core.Dense(input_dim=self.layer_sizes[-1],
-#                                      output_dim=self.layer_sizes[0],
-#                                      activation='sigmoid'))
-#            self.model.add(core.Dense(input_dim=self.layer_sizes[0],
-#                                      output_dim=self.layer_sizes[0],
-#                                      activation='linear'))
-#            for qmins in xrange(4):
-#                for i in xrange(15):
-#                    source.push(self)
-#
-#        else:
-#            pass
+time_str = lambda: dt.datetime.now().strftime('%y%m%d-%H%M%S')
 
 class AutoTransformer(Transformer):
     """
@@ -185,33 +87,65 @@ class AutoTransformer(Transformer):
                    ,'{{ "{}": "bw" }}'
                    ,'[]')
 
+    class History(Callback):
+        def __init__(self, val = False):
+            Callback.__init__(self)
+            self.val = val
+            self.losses = []
+
+        def on_train_begin(self, logs={}):
+            self.losses = []
+
+        def on_batch_end(self, batch, logs={}):
+            if self.val:
+                self.losses.append(((logs.get('loss')
+                                    ,logs.get('acc'))
+                                   ,(logs.get('val_loss')
+                                    ,logs.get('val_acc'))))
+            else:
+                self.losses.append((logs.get('loss'), logs.get('acc')))
+
     def __init__(self
                 ,input_dim
                 ,bw_source
                 ,ph_source = Source(lambda: None)
                 ,mode = TRAINING
                 ,batch_size = 60
-                ,epochs = 20
+                ,epochs = 60
+                ,num_sizes = 4
                 ,encdec_optimizer = 'rmsprop'
                 ,class_optimizer = 'adadelta'
-                ,weights_name = 'latest'):
+                ,class_loss = 'categorical_crossentropy'
+                ,drop_rate = 0.1
+                ,gauss_base_sigma = 0.0
+                ,gauss_sigma_factor = 2
+                ,model_name = 'latest'
+                ,encdecs_name = None):
         if mode is AutoTransformer.TUNING: raise ValueError("Can't instantiate an AT in 'tuning' mode")
         self.mode = mode.instantiate(self, [bw_source, ph_source]) # Source order matters!
         self.batch_size = batch_size
         self.epochs = epochs
         self.bw_source = bw_source
         self.ph_source = ph_source
-        self.layer_sizes = [input_dim] + [64, 32, 16]
+        self.layer_sizes = [input_dim] + [2**i for i in xrange(6, 6-num_sizes+1, -1)]
         self.enc_decs = []
         self.current_batch = [[] for i in range(batch_size)]
         self.previous_data = {}
         self.current_phase = phase_names[0]
         self.batched = 0
         self.model = None
-        self.weight_file = self.model_dir + self.prefix + weights_name
-        self.maxes = self.get_from_catalog("maxes", weights_name) or np.ones(input_dim)
+        self.model_name = model_name
+        self.encdecs_name = encdecs_name
+        self.maxes = self.get_from_catalog("maxes", model_name) or np.ones(input_dim)
         self.enc_opt = encdec_optimizer
         self.cls_opt = class_optimizer
+        self.cls_lss = class_loss
+        self.drop_rate = drop_rate
+        self.sigma_base = gauss_base_sigma
+        self.sigma_fact = gauss_sigma_factor
+        self.best_encdecs = ("latest",0.0)
+        self.enc_use_drop = False
+        self.enc_noise = False
         Transformer.__init__(self
                             ,self.mode.sources
                             ,self.mode.t_assignments
@@ -230,6 +164,18 @@ class AutoTransformer(Transformer):
             else:
                 return None
 
+    def update_catalog(self, name, info):
+        f = open(self.model_dir + self.catalog_name, 'r+')
+        catalog = json.loads(f.read())
+        if name in catalog:
+            entry = catalog[name]
+            allkeys = set(entry.keys()).update(info.key())
+            catalog[name] = {key: info[key] if key in info else entry[key] for key in allkeys}
+        else:
+            catalog[name] = info
+        f.write(json.dumps(catalog, indent=2, sort_keys=True))
+        f.close()
+
     def training_transform(self, bw, ph):
         self.tuning_transform(bw, ph)
         #if self.batched == self.batch_size:
@@ -241,12 +187,11 @@ class AutoTransformer(Transformer):
         #    self.batched = 0
         #    return X_l
         #else:
-        #    return None
         #    # Is this necessary or even useful?
-        #    #x_l = np.array([bw])
-        #    #for ae in self.enc_decs:
-        #    #    x_l = ae.predict(x_l, batch_size=1, verbose=0)
-        #    #return x_l
+        #    x_l = np.array([bw])
+        #    for ae in self.enc_decs:
+        #        x_l = ae.predict(x_l, batch_size=1, verbose=0)
+        #    return x_l
 
     def tuning_transform(self, bw, ph):
         self.current_phase = ph
@@ -270,17 +215,41 @@ class AutoTransformer(Transformer):
             if self.debug(): self.debug(self.getName()+": "+self.value)
             self.subscriptions = {s : False for s in self.subscriptions.keys()}
 
-    #TODO make this run in a separate thread? See to it that all incoming signals are handled correctly during
-    def finetune(self, train_encdecs = True):
-        self.change_mode(self.TUNING)
-        if train_encdecs:
-            X_l = np.array(sum(self.previous_data.values(), []))
-            for (lay, ae) in enumerate(self.enc_decs):
-                loss = ae.fit(X_l, X_l, batch_size=self.batch_size, nb_epoch=self.epochs, show_accuracy=True)
-                logger.info({"training_loss_pre_"+str(lay): {self.getName(): loss}})
-                X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
-            self.save_encdecs(dt.datetime.now().strftime('%y%m%d-%H%M%S'))
+    def pretrain(self, name = None, overwrite_latest = True, early_stopping = None):
+        X_l = np.array(sum(self.previous_data.values(), []))
+        cum_history = []
+        for (lay, ae) in enumerate(self.enc_decs):
+            history = self.History()
+            callbacks = [history]
+            if early_stopping:
+                callbacks.append(EarlyStopping(**early_stopping))
+            ae.fit(X_l, X_l, batch_size=self.batch_size, nb_epoch=self.epochs,
+                   show_accuracy=True, callbacks=callbacks)
+            X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
+            cum_history.append(history.losses)
+        f_name = name or time_str()
+        self.save_encdecs(f_name)
+        self.encdecs_name = f_name
+        if overwrite_latest:
             self.save_encdecs()
+        quality = reduce(mul, (i[-1][1] for i in cum_history))
+        if quality > self.best_encdecs[1]:
+            self.best_encdecs = (f_name, quality)
+            self.save_encdecs("best")
+        return cum_history
+
+    # TODO make this run in a separate thread? See to it that all incoming signals are handled correctly during
+    # TODO make this accept validation data from elsewhere or at least have x-validation option
+    def finetune(self, name = None, train_encdecs = True, early_stopping = None):
+        """
+        :param train_encdecs: If true, pretraining is done now, if not the latest pretrained layers are loaded
+        :param early_stopping: Should be None or a dict with keys "monitor", "patience", and possibly "verbose"
+        :return: The loss and accuracy history of the model fit, type [((loss,acc),(val_loss,val_acc))]
+        """
+        self.change_mode(self.TUNING)
+        start_time = time_str()
+        if train_encdecs:
+            self.pretrain()
         else:
             self.load_encdecs()
         if not self.model:
@@ -290,16 +259,23 @@ class AutoTransformer(Transformer):
             map(np.array, measurements),
             np_utils.to_categorical(map(
                 lambda n: phase_names.index(n),
-                phases)), #[p for p in phases for i in range(self.batch_size)])),
+                phases)),
             test_size=0.1
         )
+        history = self.History()
+        callbacks = [ModelCheckpoint("at-"+start_time+"-{epoch}-{acc:.4f}.hdf5", save_best_only=True), history]
+        if early_stopping:
+            callbacks.append(EarlyStopping(**early_stopping))
         self.model.fit(np.array(X_train), y_train, batch_size=self.batch_size, nb_epoch=self.epochs,
-                       show_accuracy=bool(self.enc_decs), validation_data=(np.array(X_test), y_test))
-        score = self.model.evaluate(np.array(X_test), y_test, show_accuracy=bool(self.enc_decs), verbose=0)
+                       show_accuracy=True, validation_data=(np.array(X_test), y_test),
+                       callbacks=callbacks)
+        score = self.model.evaluate(np.array(X_test), y_test, show_accuracy=True, verbose=0)
         logger.info({"finetune_score": score})
-        self.save_model(dt.datetime.now().strftime('%y%m%d-%H%M%S'))
+        f_name = name or time_str()
+        self.save_model(f_name)
         self.save_model()
-        self.change_mode(self.USING)
+        #self.change_mode(self.USING)
+        return history.losses
 
     def change_mode(self, new_mode):
         self.mode = new_mode.instantiate(self, [self.bw_source, self.ph_source])
@@ -309,11 +285,19 @@ class AutoTransformer(Transformer):
         # DIRTY
         self.setSources(self.mode.sources)
 
-    def new_encdecs(self, compile = True):
+    def new_encdecs(self, compile = True, use_dropout = False, use_noise = False):
         self.enc_decs = []
-        for n_in, n_out in zip(self.layer_sizes[:-1], self.layer_sizes[1:]):
+        self.enc_use_drop = use_dropout
+        self.enc_use_noise = use_noise
+        for (i,(n_in, n_out)) in enumerate(zip(self.layer_sizes[:-1], self.layer_sizes[1:])):
             ae = Sequential()
-            enc = containers.Sequential([core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid')])
+            enc_l = []
+            if use_noise:
+                enc_l.append(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i)))
+            enc_l.append(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid'))
+            if use_dropout:
+                enc_l.append(core.Dropout(self.drop_rate))
+            enc = containers.Sequential(enc_l)
             dec = containers.Sequential([core.Dense(input_dim=n_out, output_dim=n_in, activation='sigmoid')])
             ae.add(core.AutoEncoder(encoder=enc, decoder=dec,
                                     output_reconstruction=False))
@@ -323,112 +307,170 @@ class AutoTransformer(Transformer):
 
     def new_model(self, fresh = False, compile = True):
         self.model = Sequential()
-        noise_cl = core.Dropout
-        noise_par = 0.1
+        drop_cl = core.Dropout
         if self.enc_decs and not fresh:
-            for enc in [ae.layers[0].encoder for ae in self.enc_decs]:
+            for (i,enc) in enumerate(ae.layers[0].encoder for ae in self.enc_decs):
+                if self.drop_rate != 0:
+                    self.model.add(drop_cl(self.drop_rate, input_shape=(self.layer_sizes[i],)))
+                if self.sigma_base != 0:
+                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i)))
                 self.model.add(enc)
-                self.model.add(noise_cl(noise_par))
         else:
-            for n_in, n_out in zip(self.layer_sizes[:-1], self.layer_sizes[1:]):
+            for (i,(n_in, n_out)) in enumerate(zip(self.layer_sizes[:-1], self.layer_sizes[1:])):
+                if self.drop_rate != 0:
+                    self.model.add(drop_cl(self.drop_rate, input_shape=(n_in,)))
+                if self.sigma_base != 0:
+                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i)))
                 self.model.add(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid'))
-                self.model.add(noise_cl(noise_par))
                 #TODO ?
         self.model.add(core.Dense(input_dim=self.layer_sizes[-1]
                                   ,output_dim=len(phase_names)
                                   ,activation='softmax'))
         if compile:
-            self.model.compile(loss='categorical_crossentropy', optimizer=self.cls_opt)
+            self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
 
     def load_model(self, f_name = None):
-        if not self.model() and not f_name:
-            self.new_model()
+        if not self.model and not f_name:
+            self.new_model(compile=False)
         elif f_name:
             if not self.model():
                 f_name_sizes = self.get_from_catalog("layer_sizes", f_name)
                 latest_sizes = self.get_from_catalog("layer_sizes")
                 self.layer_sizes = f_name_sizes or latest_sizes
                 self.new_model(fresh = True, compile = False)
-            self.weight_file = self.model_dir + self.prefix + f_name
+            self.model_name = f_name
         else:
             pass #?
-        self.model.load_weights(self.weight_file)
+        self.model.load_weights(self.model_dir + self.prefix + self.model_name)
+        self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
 
     def save_model(self, f_name = None):
-        # TODO save in catalog
+        name = f_name or self.model_name
         if not self.model:
             logger.error({"error": {self.getName(): "Tried to save, but no model!"}})
         else:
-            name = (self.model_dir + self.prefix + f_name) if f_name else self.weight_file
-            self.model.save_weights(name, overwrite=True)
+            self.update_catalog(name, self.model_info())
+            f = self.model_dir + self.prefix + name
+            self.model.save_weights(f, overwrite=True)
 
     def save_encdecs(self, f_name = None):
         assert len(self.enc_decs) > 0
+        name = f_name or self.encdecs_name or self.model_name
+        self.update_catalog("ed_" + name, self.encdec_info())
+        base = self.model_dir + self.prefix + name
         for (i, ed) in enumerate(self.enc_decs):
-            base = (self.model_dir + self.prefix + f_name) if f_name else self.weight_file
-            name = base + '_ed_' + str(i)
-            ed.save_weights(name, overwrite=True)
+            f = base + "_ed_" + str(i)
+            ed.save_weights(f, overwrite=True)
 
-    # TODO switch to using self.weight_file
     def load_encdecs(self, f_name = None):
-        if not self.enc_decs and not f_name:
+        name = f_name or self.encdecs_name or self.model_name or "latest"
+        if not self.enc_decs:
+            self.layer_sizes = self.get_from_catalog("layer_sizes", "ed_" + name)
             self.new_encdecs(compile=False)
-        elif f_name:
-            self.layer_sizes = self.get_from_catalog("layer_sizes", f_name) or self.get_from_catalog("layer_sizes")
-            self.new_encdecs(compile=False)
+        base = self.model_dir + self.prefix + name
         for (i, ed) in enumerate(self.enc_decs):
-            base = (self.model_dir + self.prefix + f_name) if f_name else self.weight_file
-            name = base + '_ed_' + str(i)
-            ed.load_weights(name)
+            f = base + "_ed_" + str(i)
+            ed.load_weights(f)
             ed.compile(loss='mse', optimizer=self.enc_opt)
             # TODO add things like optimizer chosen to catalog
 
-    def load_data(self): #TODO load latest or named
-        with gzip.open(self.model_dir + self.prefix + "data" +
-                               dt.datetime.now().strftime('%y%m%d-%H%M%S') + ".pkl.gz", 'rb') as f:
+    def load_data(self, f_name = None): #TODO load latest or named
+        name = f_name or self.get_from_catalog("data")
+        with gzip.open(self.model_dir + self.prefix + "data" + name + ".pkl.gz", 'rb') as f:
             self.previous_data = pickle.load(f)
 
-    def save_data(self): #TODO copy to 'latest'
-        with gzip.open(self.model_dir + self.prefix + "data" +
-                               dt.datetime.now().strftime('%y%m%d-%H%M%S') + ".pkl.gz", 'wb') as f:
+    def save_data(self, f_name = None): #TODO copy to 'latest' or save the name in the catalog
+        name = f_name or time_str()
+        self.update_catalog(self.model_name, {"data": name})
+        with gzip.open(self.model_dir + self.prefix + "data" + name + ".pkl.gz", 'wb') as f:
             pickle.dump(self.previous_data, f)
+
+    def encdec_info(self):
+        info = {
+            "epochs": self.epochs,
+            "layer_sizes": self.layer_sizes,
+            "encdec_optimizer": self.enc_opt,
+            "enc_use_drop": self.enc_use_drop,
+            "drop_rate": self.drop_rate,
+            "enc_use_noise": self.enc_use_noise,
+            "gaussian_base_sigma": self.sigma_base,
+            "gaussian_sigma_factor": self.sigma_fact
+        }
+        return info
+
+    def model_info(self):
+        info = {
+            "epochs": self.epochs,
+            "layer_sizes": self.layer_sizes,
+            "class_optimizer": self.cls_opt,
+            "class_loss": self.cls_lss,
+            "drop_rate": self.drop_rate,
+            "gaussian_base_sigma": self.sigma_base,
+            "gaussian_sigma_factor": self.sigma_fact
+        }
+        return info
 
 
 
 # TODO write tests for AutoTransformer
 if __name__ == '__main__':
+    ### CONFIG ###
+    shift = 4
+    label_normalization = [0.82967276, 1.69463687, 1.74141838, 0.3860981,  0.34817388]
+    #label_normalization = [0.47643503, 0.97313597, 1.0,        0.22171473, 0.19993695]
+    #label_normalization = [1.0, 2.0, 2.0, 0.0, 0.0]
+    def biased_cce(y_true, y_pred):
+        return K.mean(K.categorical_crossentropy(y_pred, label_normalization * y_true), axis=-1)
+    nest = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
+    ae_conf = dict(epochs=120
+                  ,batch_size=60
+                  ,drop_rate=0
+                  ,gauss_base_sigma=0.0
+                  ,gauss_sigma_factor=2
+                  ,class_optimizer='adadelta'
+                  ,class_loss=biased_cce)
+    generate_data = False
+    data_mins = 35
+    finetune = True
+    ### RUN ###
     l = LogSourceMaker()
-    b = l.get_block(shift = 4)
+    b = l.get_block(shift = shift)
     bws = b.sources[0]
     phs = b.sources[1]
     prep = Preprocessing(bws)
     logger.info("prep output dim: "+str(prep.output_dim))
-    ae = AutoTransformer(prep.output_dim, prep, phs, epochs=60, class_optimizer='rmsprop')
+    ae = AutoTransformer(prep.output_dim, prep, phs, epochs=120, drop_rate=0, class_optimizer='adadelta', class_loss=biased_cce)
     print('have ae')
-    #ae.load_encdecs()
     #sink = Sink([ae], lambda r: print(r) if (not r is None) else None)
     #print('have sink')
-    t = 35*4
-    b.start()
-    while b.started and t>0:
-        time.sleep(15)
-        print(ae.batched)
-        t -= 1
-    if b.started:
-        b.stop()
-    print('stopped')
-    ae.save_data()
-    ae.finetune(train_encdecs=False)
-    print('finetuned')
-    # The documentation claims the following should be available, but it isn't...
-    #grapher = keras.utils.dot_utils.Grapher()
-    #grapher.plot(ae.model, 'model.png')
+    if generate_data:
+        t = data_mins*4
+        b.start()
+        while b.started and t>0:
+            time.sleep(15)
+            print(ae.batched)
+            t -= 1
+        if b.started:
+            b.stop()
+        print('stopped')
+        #ae.save_data()
+    else:
+        ae.load_data()
+    if finetune:
+        history = ae.finetune(train_encdecs=False)
+        print('finetuned')
+    else:
+        ae.load_model()
     for key in ae.previous_data:
         print(key)
-        bws = ae.previous_data[key]
-        print(ae.model.evaluate(np.array(bws), np_utils.to_categorical(map(lambda n: phase_names.index(n)
-                                                                          ,list(repeat(key, len(bws))))
-                                                                      ,len(phase_names))
-                               ,show_accuracy=True))
-        print(np.sum(map(lambda p: np.identity(len(phase_names))[np.argmax(p)], ae.model.predict(np.array(bws))), axis=0))
+        arr = np.array(ae.previous_data[key])
+        phl = len(phase_names)
+        eye = np.identity(phl)
+        eval= ae.model.evaluate(arr, np_utils.to_categorical(map(lambda n: phase_names.index(n)
+                                                                ,list(repeat(key, len(arr))))
+                                                            ,phl)
+                               ,show_accuracy=True)
+        counts = np.sum(map(lambda p: eye[np.argmax(p)], ae.model.predict(arr)), axis=0)
+        print(eval)
+        print(counts)
 
