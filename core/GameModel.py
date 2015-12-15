@@ -23,6 +23,79 @@ DROPPING_TILES = 'dropping_tiles'
 NEXT_LEVEL = 'next_level'
 GAME_OVER = 'game_over'
 
+class Objective(object):
+    def __init__(self,
+                 parent,
+                 aop = 'action',
+                 time = 30,
+                 start = None,
+                 stop = GameCondition(),
+                 cleanup = GameAction()):
+        self.parent = parent
+        self.aop = aop
+        self.time = time
+        self.stop = stop
+        self.cleanup = cleanup
+        if start:
+            for ga in start:
+                parent.register_game_action(ga)
+        parent.add_time(time)
+
+    def process_events(self, events):
+        for event in events:
+            self.stop.handle(event)
+        if self.stop.satisfied:
+            self.parent.register_game_action(self.cleanup)
+            return True
+        else:
+            return False
+
+
+class GameAction(object):
+    def __init__(self
+                ,with_board = None
+                ,with_drops = None
+                ,with_score = None
+                ,message = ""):
+        self.with_board = with_board or (lambda x: x)
+        self.with_drops = with_drops or (lambda x: x)
+        self.with_score = with_score or (lambda x: x)
+        self.message = message
+
+
+class GameCondition(object):
+    def __init__(self
+                ,type = ''
+                ,value = None
+                ,condition = lambda x: True):
+        self.value = value
+        self.condition = condition
+        self.type = type
+        self.satisfied = False
+
+    def handle(self, event):
+        if not self.satisfied and event.type == self.type:
+            self.value = event.effect(self.value)
+            self.satisfied = self.condition(self.value)
+        return self
+
+class MultipleConditions(GameCondition):
+    def __init__(self, conds):
+        GameCondition.__init__(self, 'any', conds, lambda cs: all(c.satisfied for c in cs))
+
+    def handle(self, event):
+        if not self.satisfied:
+            self.value = map(lambda v: v.handle(event), self.value)
+            self.satisfied = self.condition(self.value)
+        return self
+
+class GameEvent(object):
+    def __init__(self
+                ,type = ''
+                ,effect = lambda x: x):
+        self.type = type
+        self.effect = effect
+
 class GameModel(pyglet.event.EventDispatcher):
     def __init__(self, hud_offset = 0):
         super(GameModel, self).__init__()
@@ -40,6 +113,10 @@ class GameModel(pyglet.event.EventDispatcher):
         self.objectiveLogger = logging.getLogger('data.game.objective')
         self.max_play_time = 60
         self.ticking = False
+        self.board_actions = []
+        self.drop_actions = []
+        self.score_actions = []
+        self.message_actions = []
 
     def set_tick(self, on_off, interval=1):
         """
@@ -89,12 +166,17 @@ class GameModel(pyglet.event.EventDispatcher):
     def time_tick(self, delta):
         self.play_time -= 1
         self.dispatch_event("on_update_time", self.play_time/float(self.max_play_time))
+        if self.message_actions:
+            msg_act = self.message_actions.pop(0)
+            msg = msg_act.message
+            if msg:
+                self.dispatch_event("on_message", msg)
         if self.play_time == 0:
             self.set_tick(False)
             self.game_state = GAME_OVER
             self.dispatch_event("on_game_over")
 
-    def set_objectives(self, type = "action0", base_difficulty = 0):
+    def set_objectives(self):
         if True:
             objectives = []
             while len(objectives) < 3:
@@ -110,7 +192,18 @@ class GameModel(pyglet.event.EventDispatcher):
             self.objectives = objectives
             self.dispatch_event("on_update_objectives")
         else:
-            pass
+            types = self.get_objective_types()
+
+            objectives = map(lambda t: self.objective_for_difficulty(t, self.difficulty_for(t)))
+
+
+    def get_objective_types(self):
+        # TODO tie this into the learner system
+        return ['3kinds', 'puzzle0']
+
+    def objective_for_difficulty(self, type, difficulty):
+        if type == '3kinds':
+            value = {tile: (count, sprite) for _ in xrange(3) for tile in (choice(self.available_tiles))}
 
     def fill_with_random_tiles(self):
         """
@@ -366,3 +459,4 @@ GameModel.register_event_type('on_update_objectives')
 GameModel.register_event_type('on_update_time')
 GameModel.register_event_type('on_game_over')
 GameModel.register_event_type('on_level_completed')
+GameModel.register_event_type('on_message')

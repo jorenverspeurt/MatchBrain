@@ -40,6 +40,9 @@ class GameView(cocos.layer.ColorLayer):
     def on_level_completed(self):
         self.hud.show_message('LEVEL COMPLETED\n', msg_duration=3, callback=lambda: self.model.set_next_level())
 
+    def on_message(self, msg):
+        self.hud.show_message(msg, msg_duration=1)
+
 
 def get_newgame(level = 1):
     status.score = 0
