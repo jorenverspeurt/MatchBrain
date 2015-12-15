@@ -5,10 +5,10 @@ import datetime as dt
 import gzip
 import json
 import logging
+import random
 import time
 from itertools import repeat
 from operator import mul
-import random
 
 import keras.layers.containers as containers
 import keras.layers.core as core
@@ -18,13 +18,13 @@ from keras.callbacks import ModelCheckpoint, EarlyStopping, Callback
 from keras.layers import noise
 from keras.models import Sequential
 from keras.optimizers import SGD
-from keras.utils import np_utils
 from keras.regularizers import WeightRegularizer
+from keras.utils import np_utils
 from sklearn.cross_validation import train_test_split
 
 from ml.logutils import LogSourceMaker
 from ml.processing import Preprocessing
-from signals.primitive import Transformer, Source
+from signals.primitive import Transformer, Source, Sink
 
 logger = logging.getLogger('learning')
 logger.setLevel(logging.DEBUG)
@@ -226,6 +226,12 @@ class AutoTransformer(Transformer):
 
     def training_transform(self, bw, ph):
         self.tuning_transform(bw, ph)
+        X_l = np.array([self.current_batch[-1]])
+        for (lay, ae) in enumerate(self.enc_decs):
+            loss = ae.train_on_batch(X_l, X_l)
+            print(loss)
+            X_l = ae.predict(X_l, batch_size=1, verbose=0)
+        return X_l
         #if self.batched == self.batch_size:
         #    X_l = np.array(map(np.array, self.current_batch))
         #    for (lay, ae) in enumerate(self.enc_decs):
@@ -244,20 +250,35 @@ class AutoTransformer(Transformer):
     def tuning_transform(self, bw, ph):
         self.current_phase = ph
         #self.maxes = np.maximum(self.maxes, np.abs(bw))
-        scaled = np.divide(bw, self.maxes)
-        self.current_batch = self.current_batch[1:]+[scaled]
-        self.batched += 1
-        self.previous_data.setdefault(self.current_phase, []).append(scaled)
+        if (not bw is None) and len(bw)>0:
+            scaled = np.divide(bw, self.maxes)
+            self.current_batch = self.current_batch[1:]+[scaled]
+            self.batched += 1
+            self.previous_data.setdefault(self.current_phase, []).append(scaled)
         return None
 
     def using_transform(self, bw):
-        return self.model.predict(np.array(bw), batch_size=1)
+        return self.model.predict(np.array([bw]), batch_size=1)
 
     def pull(self):
         return self.value
 
+    def push(self, source, value = None):
+        if source in self.subscriptions:
+            if not value is None:
+                self.subscriptions[source] = True
+                input_name = self.getInputNameFor(source)
+                if input_name:
+                    self.inputs[input_name] = value
+                    self.makeValue()
+                    for scriber in self.subscribers:
+                        scriber.push(self, self.value)
+            else:
+                self.subscriptions[source] = False
+
     def makeValue(self):
-        new_val = self.transform(**self.inputs)
+        inputs = {key: self.inputs[key] for source in self.subscriptions for key in (self.getInputNameFor(source),)}
+        new_val = self.transform(**inputs)
         if not new_val is None:
             self.value = new_val
             if self.debug(): self.debug(self.getName()+": "+self.value)
@@ -265,6 +286,7 @@ class AutoTransformer(Transformer):
 
     def pretrain(self, name = None, overwrite_latest = True, early_stopping = None):
         X_l = np.array(sum(self.previous_data.values(), []))
+        print(len(X_l))
         cum_history = []
         for (lay, ae) in enumerate(self.enc_decs):
             history = self.History()
@@ -307,12 +329,12 @@ class AutoTransformer(Transformer):
         X_train, X_test, y_train, y_test = train_test_split(
             map(np.array, measurements),
             np_utils.to_categorical(map(
-                lambda n: phase_names.index(n),
+                lambda n: phase_names.index(n) if n else phase_names.index("DISTRACT"),
                 phases)),
             test_size=0.1
         )
         history = self.History()
-        callbacks = [ModelCheckpoint("at-"+start_time+"-{epoch}-{acc:.4f}.hdf5", save_best_only=True), history]
+        callbacks = [ModelCheckpoint("at-"+start_time+"-{epoch}-{val_acc:.4f}.hdf5", save_best_only=True), history]
         if early_stopping:
             callbacks.append(MyEarlyStopping(**early_stopping))
         self.model.fit(np.array(X_train), y_train, batch_size=self.batch_size, nb_epoch=self.epochs,
@@ -333,6 +355,8 @@ class AutoTransformer(Transformer):
         self.no_updates = self.mode.no_updates
         # DIRTY
         self.setSources(self.mode.sources)
+        if new_mode.name == self.USING.name:
+            Sink([self], lambda d: logging.getLogger('data.at').info(list(d)))
 
     def new_encdecs(self, compile = True, use_dropout = False, use_noise = False):
         self.enc_decs = []
@@ -361,7 +385,7 @@ class AutoTransformer(Transformer):
     def new_model(self, fresh = False, compile = True):
         self.model = Sequential()
         drop_cl = core.Dropout
-        if l1 != 0 or l2 != 0:
+        if self.l1 != 0 or self.l2 != 0:
             regularizer = WeightRegularizer(l1=self.l1, l2=self.l2)
         else:
             regularizer = None

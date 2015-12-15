@@ -23,6 +23,50 @@ DROPPING_TILES = 'dropping_tiles'
 NEXT_LEVEL = 'next_level'
 GAME_OVER = 'game_over'
 
+class GameEvent(object):
+    def __init__(self
+                 ,type = ''
+                 ,effect = lambda x: x):
+        self.type = type
+        self.effect = effect
+
+class GameCondition(object):
+    def __init__(self
+                 ,type = ''
+                 ,value = None
+                 ,condition = lambda x: True):
+        self.value = value
+        self.condition = condition
+        self.type = type
+        self.satisfied = False
+
+    def handle(self, event):
+        if not self.satisfied and event.type == self.type:
+            self.value = event.effect(self.value)
+            self.satisfied = self.condition(self.value)
+        return self
+
+class MultipleConditions(GameCondition):
+    def __init__(self, conds):
+        GameCondition.__init__(self, 'any', conds, lambda cs: all(c.satisfied for c in cs))
+
+    def handle(self, event):
+        if not self.satisfied:
+            self.value = map(lambda v: v.handle(event), self.value)
+            self.satisfied = self.condition(self.value)
+        return self
+
+class GameAction(object):
+    def __init__(self
+                 ,with_board = None
+                 ,with_drops = None
+                 ,with_score = None
+                 ,message = ""):
+        self.with_board = with_board or (lambda x: x)
+        self.with_drops = with_drops or (lambda x: x)
+        self.with_score = with_score or (lambda x: x)
+        self.message = message
+
 class Objective(object):
     def __init__(self,
                  parent,
@@ -49,52 +93,6 @@ class Objective(object):
             return True
         else:
             return False
-
-
-class GameAction(object):
-    def __init__(self
-                ,with_board = None
-                ,with_drops = None
-                ,with_score = None
-                ,message = ""):
-        self.with_board = with_board or (lambda x: x)
-        self.with_drops = with_drops or (lambda x: x)
-        self.with_score = with_score or (lambda x: x)
-        self.message = message
-
-
-class GameCondition(object):
-    def __init__(self
-                ,type = ''
-                ,value = None
-                ,condition = lambda x: True):
-        self.value = value
-        self.condition = condition
-        self.type = type
-        self.satisfied = False
-
-    def handle(self, event):
-        if not self.satisfied and event.type == self.type:
-            self.value = event.effect(self.value)
-            self.satisfied = self.condition(self.value)
-        return self
-
-class MultipleConditions(GameCondition):
-    def __init__(self, conds):
-        GameCondition.__init__(self, 'any', conds, lambda cs: all(c.satisfied for c in cs))
-
-    def handle(self, event):
-        if not self.satisfied:
-            self.value = map(lambda v: v.handle(event), self.value)
-            self.satisfied = self.condition(self.value)
-        return self
-
-class GameEvent(object):
-    def __init__(self
-                ,type = ''
-                ,effect = lambda x: x):
-        self.type = type
-        self.effect = effect
 
 class GameModel(pyglet.event.EventDispatcher):
     def __init__(self, hud_offset = 0):

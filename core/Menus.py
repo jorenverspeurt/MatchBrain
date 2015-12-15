@@ -10,9 +10,11 @@ c = Colors()
 f = Fonts()
 
 class MainMenu(Menu):
-    def __init__(self, test=False):
+    def __init__(self, test=False, phase_source=None, train_end_callables=[]):
         super(MainMenu, self).__init__('MatchBrain')
         self.test = test
+        self.phase_source = phase_source
+        self.train_end_callables = train_end_callables
 
         defont = f.default
 
@@ -57,7 +59,7 @@ class MainMenu(Menu):
     def on_train(self):
         import TrainView
 
-        director.push(TrainView.get_new_trainer(self.test))
+        director.push(TrainView.get_new_trainer(self.test, self.phase_source, self.train_end_callables))
 
     def on_scores(self):
         self.parent.switch_to(2)

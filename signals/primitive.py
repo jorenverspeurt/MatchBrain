@@ -155,7 +155,8 @@ class Transformer(Debuggable):
                     # If there is only 1 input we now have all necessary info already
                     # (or only 1 input not in no_updates, and it's the one that's updated)
                     if (self.arg_assigns[source.getName()] not in self.no_updates) and \
-                            ((self.inputs) == 1 or all(self.subscriptions.values())):
+                            (len(self.inputs) == 1 or all(self.subscriptions.values()) or
+                            len(self.inputs) - len(self.no_updates) == 1):
                         self.makeValue()
                         for scriber in self.subscribers:
                             scriber.push(self, self.value)

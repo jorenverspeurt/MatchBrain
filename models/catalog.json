@@ -539,13 +539,169 @@
     "shift": 4, 
     "uses_encdecs": "151208-213951"
   }, 
-  "ed_best": {
-    "drop_rate": 0.001, 
-    "enc_use_drop": true, 
-    "enc_use_noise": true, 
+  "151215-123500": {
+    "class_loss": "categorical_crossentropy", 
+    "class_optimizer": "adadelta", 
+    "drop_rate": 0.1, 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "151215-124248": {
+    "class_loss": "categorical_crossentropy", 
+    "class_optimizer": "adadelta", 
+    "drop_rate": 0.1, 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "151215-133000": {
+    "class_loss": "categorical_crossentropy", 
+    "class_optimizer": "adadelta", 
+    "drop_rate": 0.1, 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "151215-135022": {
+    "class_loss": "categorical_crossentropy", 
+    "class_optimizer": "adadelta", 
+    "drop_rate": 0.1, 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_151215-122605": {
+    "drop_rate": 0.1, 
+    "enc_use_drop": false, 
+    "enc_use_noise": false, 
     "encdec_optimizer": "adadelta", 
-    "epochs": 20, 
-    "gaussian_base_sigma": 0.001, 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_151215-123443": {
+    "drop_rate": 0.1, 
+    "enc_use_drop": false, 
+    "enc_use_noise": false, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_151215-124232": {
+    "drop_rate": 0.1, 
+    "enc_use_drop": false, 
+    "enc_use_noise": false, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_151215-132316": {
+    "drop_rate": 0.1, 
+    "enc_use_drop": false, 
+    "enc_use_noise": false, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_151215-132939": {
+    "drop_rate": 0.1, 
+    "enc_use_drop": false, 
+    "enc_use_noise": false, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_151215-134956": {
+    "drop_rate": 0.1, 
+    "enc_use_drop": false, 
+    "enc_use_noise": false, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_best": {
+    "drop_rate": 0.1, 
+    "enc_use_drop": false, 
+    "enc_use_noise": false, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
     "gaussian_sigma_factor": 2, 
     "layer_sizes": [
       100, 
@@ -803,6 +959,21 @@
     "loss_pre_2": 5.236691140453331e-05, 
     "loss_pre_3": 0.00010158147051697597
   }, 
+  "emilio": {
+    "class_loss": "categorical_crossentropy", 
+    "class_optimizer": "adadelta", 
+    "drop_rate": 0.1, 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
   "latest": {
     "data": "151213-215033", 
     "layer_sizes": [
@@ -963,5 +1134,20 @@
     "loss_pre_1": 7.336555427173153e-05, 
     "loss_pre_2": 0.00016167857393156737, 
     "loss_pre_3": 4.743283716379665e-05
+  }, 
+  "test": {
+    "class_loss": "categorical_crossentropy", 
+    "class_optimizer": "adadelta", 
+    "drop_rate": 0.1, 
+    "epochs": 15, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
   }
 }

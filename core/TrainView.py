@@ -20,11 +20,11 @@ phase_names = ['DISTRACT', 'RELAXOPEN', 'RELAXCLOSED', 'CASUAL', 'INTENSE']
 class TrainView(cocos.layer.ColorLayer):
     is_event_handler = True
 
-    def __init__(self, scene, test=False):
+    def __init__(self, scene, test=False, phase_source = None, train_end_callables = None):
         cocos.layer.ColorLayer.__init__(self, 0, 0, 0, 0)
         self.scene = scene
         self.msg = MessageLayer()
-        longMsg = 30 if not test else 3
+        longMsg = 60 if not test else 3
         shortMsg = 3 if not test else 1
         self.phases = [
             Phase('DISTRACT', "Look around,\nget distracted", longMsg, self.nextPhase),
@@ -34,9 +34,18 @@ class TrainView(cocos.layer.ColorLayer):
             Phase('INTENSE', "Match as fast as possible\n(forget the objective)", shortMsg, lambda: self.play(0))
         ]
         assert all(name in [phase.name for phase in self.phases] for name in phase_names) #selfcheck...
+        if phase_source:
+            phase_source.upstream = self.getPhase
+        self.train_end_callables = train_end_callables or []
         self.phase = 0
         self.phaseLogger = logging.getLogger('data.train.phase')
         self.nextPhase()
+
+    def getPhase(self):
+        if self.phase < len(phase_names):
+            return phase_names[self.phase]
+        else:
+            return "DISTRACT"
 
     def nextPhase(self):
         if not self.phase == len(self.phases):
@@ -48,6 +57,8 @@ class TrainView(cocos.layer.ColorLayer):
                 callback=current.callback,
                 msg_duration=current.duration)
         else:
+            for c in self.train_end_callables:
+                c()
             director.director.pop()
 
     def play(self, level):
@@ -58,9 +69,9 @@ class TrainView(cocos.layer.ColorLayer):
         director.director.push(game)
 
 
-def get_new_trainer(test=False):
+def get_new_trainer(test=False, phase_source=None, train_end_callables=[]):
     scene = Scene()
-    view = TrainView(scene, test=test)
+    view = TrainView(scene, test=test, phase_source=phase_source, train_end_callables=train_end_callables)
     scene.add(view.msg, z=2, name='hud')
     scene.add(view, z=1, name='trainview')
     return scene
