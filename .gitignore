@@ -1,0 +1,8 @@
+*.pyc
+*.gz
+*.json
+
+*.yaml
+
+logs/*
+models/*
