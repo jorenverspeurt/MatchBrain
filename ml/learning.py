@@ -8,6 +8,7 @@ import logging
 import time
 from itertools import repeat
 from operator import mul
+import random
 
 import keras.layers.containers as containers
 import keras.layers.core as core
@@ -18,9 +19,9 @@ from keras.layers import noise
 from keras.models import Sequential
 from keras.optimizers import SGD
 from keras.utils import np_utils
+from keras.regularizers import WeightRegularizer
 from sklearn.cross_validation import train_test_split
 
-from core.TrainView import phase_names
 from ml.logutils import LogSourceMaker
 from ml.processing import Preprocessing
 from signals.primitive import Transformer, Source
@@ -29,9 +30,40 @@ logger = logging.getLogger('learning')
 logger.setLevel(logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
 
+phase_names = ['DISTRACT', 'RELAXOPEN', 'RELAXCLOSED', 'CASUAL', 'INTENSE']
+
 __author__ = 'joren'
 
 time_str = lambda: dt.datetime.now().strftime('%y%m%d-%H%M%S')
+
+class MyEarlyStopping(EarlyStopping):
+    def __init__(self, monitor="acc", patience=10, verbose=0, desired="high"):
+        EarlyStopping.__init__(self, monitor=monitor, patience=patience, verbose=verbose)
+        self.logs = {}
+        if desired == "high":
+            self.check_improved = lambda new, old: new > old
+            self.best = -self.best
+        else:
+            self.check_improved = lambda new, old: new < old
+
+    # TODO change this so it averages per-batch statistics to per-epoch
+    def on_epoch_end(self, epoch, logs={}):
+        self.logs.update(logs)
+        current = self.logs.get(self.monitor)
+        if self.check_improved(current, self.best):
+            self.best = current
+            self.wait = 0
+        else:
+            if self.wait >= self.patience:
+                if self.verbose > 0:
+                    print('Epoch %03d: early stopping' % (epoch))
+                self.model.stop_training = True
+            self.wait += 1
+
+    # TODO change this so it keeps per-batch statistics in a list
+    def on_batch_end(self, epoch, logs={}):
+        self.logs.update(logs)
+
 
 class AutoTransformer(Transformer):
     """
@@ -92,18 +124,29 @@ class AutoTransformer(Transformer):
             Callback.__init__(self)
             self.val = val
             self.losses = []
+            self.batch_losses = []
+            self.batch_accs = []
 
         def on_train_begin(self, logs={}):
             self.losses = []
 
         def on_batch_end(self, batch, logs={}):
+            self.batch_losses.append(logs.get('loss'))
+            self.batch_accs.append(logs.get('acc'))
+
+        def on_epoch_end(self, epoch, logs={}):
+            epoch_loss = sum(self.batch_losses)/len(self.batch_losses)
+            epoch_acc = sum(self.batch_accs)/len(self.batch_accs)
             if self.val:
-                self.losses.append(((logs.get('loss')
-                                    ,logs.get('acc'))
+                self.losses.append(((epoch_loss
+                                    ,epoch_acc)
                                    ,(logs.get('val_loss')
                                     ,logs.get('val_acc'))))
             else:
-                self.losses.append((logs.get('loss'), logs.get('acc')))
+                self.losses.append((epoch_loss, epoch_acc))
+            self.batch_losses = []
+            self.batch_accs = []
+
 
     def __init__(self
                 ,input_dim
@@ -119,6 +162,8 @@ class AutoTransformer(Transformer):
                 ,drop_rate = 0.1
                 ,gauss_base_sigma = 0.0
                 ,gauss_sigma_factor = 2
+                ,l1 = 0.0
+                ,l2 = 0.0
                 ,model_name = 'latest'
                 ,encdecs_name = None):
         if mode is AutoTransformer.TUNING: raise ValueError("Can't instantiate an AT in 'tuning' mode")
@@ -146,6 +191,8 @@ class AutoTransformer(Transformer):
         self.best_encdecs = ("latest",0.0)
         self.enc_use_drop = False
         self.enc_noise = False
+        self.l1 = l1
+        self.l2 = l2
         Transformer.__init__(self
                             ,self.mode.sources
                             ,self.mode.t_assignments
@@ -165,16 +212,17 @@ class AutoTransformer(Transformer):
                 return None
 
     def update_catalog(self, name, info):
-        f = open(self.model_dir + self.catalog_name, 'r+')
-        catalog = json.loads(f.read())
-        if name in catalog:
-            entry = catalog[name]
-            allkeys = set(entry.keys()).update(info.key())
-            catalog[name] = {key: info[key] if key in info else entry[key] for key in allkeys}
-        else:
-            catalog[name] = info
-        f.write(json.dumps(catalog, indent=2, sort_keys=True))
-        f.close()
+        with open(self.model_dir + self.catalog_name, 'r') as f:
+            catalog = json.loads(f.read())
+            if name in catalog:
+                entry = catalog[name]
+                allkeys = set(entry.keys())
+                allkeys.update(info.keys())
+                catalog[name] = {key: (info[key] if key in info else entry[key]) for key in allkeys}
+            else:
+                catalog[name] = info
+        with open(self.model_dir + self.catalog_name, 'w') as f:
+            f.write(json.dumps(catalog, indent=2, sort_keys=True))
 
     def training_transform(self, bw, ph):
         self.tuning_transform(bw, ph)
@@ -222,9 +270,9 @@ class AutoTransformer(Transformer):
             history = self.History()
             callbacks = [history]
             if early_stopping:
-                callbacks.append(EarlyStopping(**early_stopping))
-            ae.fit(X_l, X_l, batch_size=self.batch_size, nb_epoch=self.epochs,
-                   show_accuracy=True, callbacks=callbacks)
+                callbacks.append(MyEarlyStopping(**early_stopping))
+            ae.fit(X_l, X_l, batch_size=self.batch_size, nb_epoch=self.epochs//(lay+1),
+                   show_accuracy=True, callbacks=callbacks, verbose=2)
             X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
             cum_history.append(history.losses)
         f_name = name or time_str()
@@ -251,7 +299,8 @@ class AutoTransformer(Transformer):
         if train_encdecs:
             self.pretrain()
         else:
-            self.load_encdecs()
+            pass
+            #self.load_encdecs()
         if not self.model:
             self.new_model()
         measurements, phases = zip(*[(m,p) for p in self.previous_data for m in self.previous_data[p]])
@@ -265,7 +314,7 @@ class AutoTransformer(Transformer):
         history = self.History()
         callbacks = [ModelCheckpoint("at-"+start_time+"-{epoch}-{acc:.4f}.hdf5", save_best_only=True), history]
         if early_stopping:
-            callbacks.append(EarlyStopping(**early_stopping))
+            callbacks.append(MyEarlyStopping(**early_stopping))
         self.model.fit(np.array(X_train), y_train, batch_size=self.batch_size, nb_epoch=self.epochs,
                        show_accuracy=True, validation_data=(np.array(X_test), y_test),
                        callbacks=callbacks)
@@ -289,12 +338,16 @@ class AutoTransformer(Transformer):
         self.enc_decs = []
         self.enc_use_drop = use_dropout
         self.enc_use_noise = use_noise
+        if self.l1 != 0 or self.l2 != 0:
+            regularizer = WeightRegularizer(l1=self.l1, l2=self.l2)
+        else:
+            regularizer = None
         for (i,(n_in, n_out)) in enumerate(zip(self.layer_sizes[:-1], self.layer_sizes[1:])):
             ae = Sequential()
             enc_l = []
             if use_noise:
-                enc_l.append(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i)))
-            enc_l.append(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid'))
+                enc_l.append(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(n_in,)))
+            enc_l.append(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid', W_regularizer=regularizer))
             if use_dropout:
                 enc_l.append(core.Dropout(self.drop_rate))
             enc = containers.Sequential(enc_l)
@@ -308,6 +361,10 @@ class AutoTransformer(Transformer):
     def new_model(self, fresh = False, compile = True):
         self.model = Sequential()
         drop_cl = core.Dropout
+        if l1 != 0 or l2 != 0:
+            regularizer = WeightRegularizer(l1=self.l1, l2=self.l2)
+        else:
+            regularizer = None
         if self.enc_decs and not fresh:
             for (i,enc) in enumerate(ae.layers[0].encoder for ae in self.enc_decs):
                 if self.drop_rate != 0:
@@ -321,11 +378,12 @@ class AutoTransformer(Transformer):
                     self.model.add(drop_cl(self.drop_rate, input_shape=(n_in,)))
                 if self.sigma_base != 0:
                     self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i)))
-                self.model.add(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid'))
+                self.model.add(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid', W_regularizer=regularizer))
                 #TODO ?
         self.model.add(core.Dense(input_dim=self.layer_sizes[-1]
                                   ,output_dim=len(phase_names)
-                                  ,activation='softmax'))
+                                  ,activation='softmax'
+                                  ,W_regularizer=regularizer))
         if compile:
             self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
 
@@ -349,41 +407,51 @@ class AutoTransformer(Transformer):
         if not self.model:
             logger.error({"error": {self.getName(): "Tried to save, but no model!"}})
         else:
-            self.update_catalog(name, self.model_info())
             f = self.model_dir + self.prefix + name
             self.model.save_weights(f, overwrite=True)
+            self.update_catalog(name, self.model_info())
 
     def save_encdecs(self, f_name = None):
         assert len(self.enc_decs) > 0
         name = f_name or self.encdecs_name or self.model_name
-        self.update_catalog("ed_" + name, self.encdec_info())
         base = self.model_dir + self.prefix + name
         for (i, ed) in enumerate(self.enc_decs):
             f = base + "_ed_" + str(i)
             ed.save_weights(f, overwrite=True)
+        self.update_catalog("ed_" + name, self.encdec_info())
 
     def load_encdecs(self, f_name = None):
         name = f_name or self.encdecs_name or self.model_name or "latest"
+        get_cat = lambda item: self.get_from_catalog(item, "ed_"+name)
         if not self.enc_decs:
-            self.layer_sizes = self.get_from_catalog("layer_sizes", "ed_" + name)
-            self.new_encdecs(compile=False)
+            self.layer_sizes = get_cat("layer_sizes")
+            use_drop = get_cat("enc_use_drop")
+            use_noise = get_cat("enc_use_noise")
+            self.new_encdecs(compile=False, use_dropout=use_drop, use_noise=use_noise)
         base = self.model_dir + self.prefix + name
         for (i, ed) in enumerate(self.enc_decs):
             f = base + "_ed_" + str(i)
             ed.load_weights(f)
+            self.enc_opt = get_cat("encdec_optimizer")
             ed.compile(loss='mse', optimizer=self.enc_opt)
-            # TODO add things like optimizer chosen to catalog
 
-    def load_data(self, f_name = None): #TODO load latest or named
+    def cap_data(self):
+        lengths = map(len, self.previous_data.values())
+        if not all(map(lambda a: a == lengths[0], lengths)):
+            smallest = min(map(len, self.previous_data.values()))
+            for key in self.previous_data:
+                self.previous_data[key] = random.sample(self.previous_data[key], smallest)
+
+    def load_data(self, f_name = None):
         name = f_name or self.get_from_catalog("data")
         with gzip.open(self.model_dir + self.prefix + "data" + name + ".pkl.gz", 'rb') as f:
             self.previous_data = pickle.load(f)
 
-    def save_data(self, f_name = None): #TODO copy to 'latest' or save the name in the catalog
+    def save_data(self, f_name = None):
         name = f_name or time_str()
-        self.update_catalog(self.model_name, {"data": name})
         with gzip.open(self.model_dir + self.prefix + "data" + name + ".pkl.gz", 'wb') as f:
             pickle.dump(self.previous_data, f)
+        self.update_catalog(self.model_name, {"data": name})
 
     def encdec_info(self):
         info = {

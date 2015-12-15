@@ -1,0 +1,967 @@
+{
+  "151208-234706": {
+    "CASUAL": [
+      [
+        1.0972, 
+        0.4712
+      ], 
+      [
+        0, 
+        0, 
+        0, 
+        383189, 
+        429963
+      ]
+    ], 
+    "DISTRACT": [
+      [
+        1.8246, 
+        0.0
+      ], 
+      [
+        0, 
+        0, 
+        0, 
+        165410, 
+        213204
+      ]
+    ], 
+    "INTENSE": [
+      [
+        1.0008, 
+        0.6491
+      ], 
+      [
+        0, 
+        0, 
+        0, 
+        321686, 
+        595083
+      ]
+    ], 
+    "RELAXCLOSED": [
+      [
+        2.5796, 
+        0.0
+      ], 
+      [
+        0, 
+        0, 
+        0, 
+        83084, 
+        97123
+      ]
+    ], 
+    "RELAXOPEN": [
+      [
+        2.5503, 
+        0.0
+      ], 
+      [
+        0, 
+        0, 
+        0, 
+        85019, 
+        100262
+      ]
+    ], 
+    "acc_fine": 0.393726, 
+    "acc_pre_0": 0.9681, 
+    "acc_pre_1": 0.9619, 
+    "acc_pre_2": 0.9495, 
+    "batch_size": 60, 
+    "class_optimizer": "adadelta", 
+    "comment": "Initial time 35 minutes, took about 4 to 5 hours total", 
+    "drop_rate": 0.1, 
+    "encdec_optimizer": "rmsprop", 
+    "epochs": 20, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16
+    ], 
+    "loss_fine": 1.3919486, 
+    "loss_pre_0": 0.0018, 
+    "loss_pre_1": 0.0001, 
+    "loss_pre_2": 0.0, 
+    "shift": 1
+  }, 
+  "151210-021431": {
+    "CASUAL": [
+      [
+        0.5815, 
+        0.4702
+      ], 
+      [
+        11784, 
+        54807, 
+        13695, 
+        97189, 
+        29205
+      ]
+    ], 
+    "DISTRACT": [
+      [
+        1.3113, 
+        0.147
+      ], 
+      [
+        1413, 
+        33356, 
+        7563, 
+        2574, 
+        15376
+      ]
+    ], 
+    "INTENSE": [
+      [
+        0.546, 
+        0.2476
+      ], 
+      [
+        3781, 
+        18169, 
+        4465, 
+        15081, 
+        5593
+      ]
+    ], 
+    "RELAXCLOSED": [
+      [
+        2.7, 
+        0.1424
+      ], 
+      [
+        2254, 
+        14065, 
+        6527, 
+        16869
+      ]
+    ], 
+    "RELAXOPEN": [
+      [
+        2.6553, 
+        0.3858
+      ], 
+      [
+        3781, 
+        18169, 
+        4465, 
+        15081, 
+        5593
+      ]
+    ], 
+    "SGD_params": {
+      "decay": 1e-06, 
+      "lr": 0.1, 
+      "momentum": 0.9, 
+      "nesterov": true
+    }, 
+    "acc_fine": 0.3075, 
+    "batch_size": 60, 
+    "biased_cce_weights": [
+      0.82967276, 
+      1.69463687, 
+      1.74141838, 
+      0.3860981, 
+      0.34817388
+    ], 
+    "class_loss": "biased_cce", 
+    "class_optimizer": "SGD", 
+    "comment": "Loss was still decaying at 60, about 0.0002 per step... I also realized that I've been recording the 'validation score', not the actual score, but that's not so bad", 
+    "drop_rate": 0.1, 
+    "epochs": 60, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16
+    ], 
+    "loss_fine": 0.993, 
+    "shift": 4, 
+    "uses_encdecs": "151208-213951"
+  }, 
+  "151210-173448": {
+    "CASUAL": [
+      [
+        1.0478, 
+        0.4932
+      ], 
+      [
+        507, 
+        0, 
+        0, 
+        101925, 
+        104248
+      ]
+    ], 
+    "DISTRACT": [
+      [
+        1.7894, 
+        0.0251
+      ], 
+      [
+        2410, 
+        0, 
+        0, 
+        23939, 
+        68304
+      ]
+    ], 
+    "INTENSE": [
+      [
+        0.9567, 
+        0.7302
+      ], 
+      [
+        1060, 
+        0, 
+        0, 
+        61827, 
+        170201
+      ]
+    ], 
+    "RELAXCLOSED": [
+      [
+        2.538, 
+        0.0
+      ], 
+      [
+        19, 
+        0, 
+        0, 
+        16867, 
+        2893
+      ]
+    ], 
+    "RELAXOPEN": [
+      [
+        2.5194, 
+        0.0
+      ], 
+      [
+        22, 
+        0, 
+        0, 
+        14746, 
+        32321
+      ]
+    ], 
+    "acc_fine": 0.424589, 
+    "batch_size": 60, 
+    "class_loss": "categorical_crossentropy", 
+    "class_optimizer": "rmsprop", 
+    "comment": "I thought I used the biased loss here to try to fix the imbalance problem, but I was stupid and forgot to set the new loss...", 
+    "drop_rate": 0.1, 
+    "epochs": 60, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16
+    ], 
+    "loss_fine": 1.3429714, 
+    "shift": 4, 
+    "uses_encdecs": "151208-213951"
+  }, 
+  "151210-213952": {
+    "CASUAL": [
+      [
+        0.6014, 
+        0.3843
+      ], 
+      [
+        10660, 
+        62159, 
+        30033, 
+        79428, 
+        24400
+      ]
+    ], 
+    "DISTRACT": [
+      [
+        1.2978, 
+        0.1711
+      ], 
+      [
+        16456, 
+        34894, 
+        12899, 
+        19010, 
+        12922
+      ]
+    ], 
+    "INTENSE": [
+      [
+        0.5521, 
+        0.2119
+      ], 
+      [
+        24272, 
+        70470, 
+        36711, 
+        52251, 
+        49384
+      ]
+    ], 
+    "RELAXCLOSED": [
+      [
+        2.6658, 
+        0.2424
+      ], 
+      [
+        2583, 
+        15645, 
+        11108, 
+        11874, 
+        4614
+      ]
+    ], 
+    "RELAXOPEN": [
+      [
+        2.5964, 
+        0.4005
+      ], 
+      [
+        4736, 
+        18858, 
+        8018, 
+        11103, 
+        4374
+      ]
+    ], 
+    "acc_fine": 0.2789, 
+    "batch_size": 60, 
+    "biased_cce_weights": [
+      0.82967276, 
+      1.69463687, 
+      1.74141838, 
+      0.3860981, 
+      0.34817388
+    ], 
+    "class_loss": "biased_cce", 
+    "class_optimizer": "adadelta", 
+    "comment": "With AdaDelta the loss goes down quicker, but more importantly it seems to keep going down even at epoch 60, still no amazing performance though...", 
+    "drop_rate": 0.1, 
+    "epochs": 60, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16
+    ], 
+    "loss_fine": 0.9935, 
+    "shift": 4, 
+    "uses_encdecs": "151208-213951"
+  }, 
+  "151212-091719": {
+    "CASUAL": [
+      [
+        0.6171, 
+        0.0588
+      ], 
+      [
+        7240, 
+        159405, 
+        11805, 
+        12155, 
+        16075
+      ]
+    ], 
+    "DISTRACT": [
+      [
+        1.3103, 
+        0.0961
+      ], 
+      [
+        9247, 
+        70851, 
+        3808, 
+        2897, 
+        9378
+      ]
+    ], 
+    "INTENSE": [
+      [
+        0.5712, 
+        0.1737
+      ], 
+      [
+        11001, 
+        160872, 
+        13524, 
+        7196, 
+        40495
+      ]
+    ], 
+    "RELAXCLOSED": [
+      [
+        2.739, 
+        0.0953
+      ], 
+      [
+        1823, 
+        34752, 
+        4369, 
+        1242, 
+        3638
+      ]
+    ], 
+    "RELAXOPEN": [
+      [
+        2.5336, 
+        0.8193
+      ], 
+      [
+        1541, 
+        38581, 
+        2508, 
+        992, 
+        3467
+      ]
+    ], 
+    "acc_fine": 0.2448, 
+    "batch_size": 60, 
+    "biased_cce_weights": [
+      0.82967276, 
+      1.69463687, 
+      1.74141838, 
+      0.3860981, 
+      0.34817388
+    ], 
+    "class_loss": "biased_cce", 
+    "class_optimizer": "adadelta", 
+    "comment": "The loss here is training loss, not validation. The validation loss was quite similar, the validation accuracy bounced around. The loss got stuck at this value at about epoch 135", 
+    "drop_rate": 0.1, 
+    "epochs": 150, 
+    "gaussian_base_sigma": 0.05, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16
+    ], 
+    "loss_fine": 1.01, 
+    "shift": 4, 
+    "uses_encdecs": "151208-213951"
+  }, 
+  "151212-143512": {
+    "CASUAL": [
+      [
+        0.6019, 
+        0.3004
+      ], 
+      [
+        30043, 
+        21646, 
+        58950, 
+        62092, 
+        33949
+      ]
+    ], 
+    "DISTRACT": [
+      [
+        1.1545, 
+        0.3908
+      ], 
+      [
+        37590, 
+        12306, 
+        20067, 
+        10416, 
+        15802
+      ]
+    ], 
+    "INTENSE": [
+      [
+        0.5114, 
+        0.3129
+      ], 
+      [
+        49467, 
+        26149, 
+        49856, 
+        34672, 
+        72944
+      ]
+    ], 
+    "RELAXCLOSED": [
+      [
+        2.3867, 
+        0.5554
+      ], 
+      [
+        5337, 
+        6490, 
+        25452, 
+        4223, 
+        4322
+      ]
+    ], 
+    "RELAXOPEN": [
+      [
+        2.5453, 
+        0.2302
+      ], 
+      [
+        10791, 
+        10838, 
+        15765, 
+        4743, 
+        4952
+      ]
+    ], 
+    "acc_fine": 0.3397, 
+    "batch_size": 60, 
+    "biased_cce_weights": [
+      0.82967276, 
+      1.69463687, 
+      1.74141838, 
+      0.3860981, 
+      0.34817388
+    ], 
+    "class_loss": "biased_cce", 
+    "class_optimizer": "adadelta", 
+    "comment": "All noise off this time. Loss was still falling at 120.", 
+    "drop_rate": 0.0, 
+    "epochs": 120, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16
+    ], 
+    "loss_fine": 0.9304, 
+    "shift": 4, 
+    "uses_encdecs": "151208-213951"
+  }, 
+  "ed_best": {
+    "drop_rate": 0.001, 
+    "enc_use_drop": true, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 20, 
+    "gaussian_base_sigma": 0.001, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_o-adadelta-dr-0.001-gbs-0.001-gsf-2-l1-0-l2-0.001": {
+    "acc_pre_0": 1.0, 
+    "acc_pre_1": 0.8, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 0.9666666666666667, 
+    "drop_rate": 0.001, 
+    "enc_use_drop": false, 
+    "enc_use_noise": false, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 20, 
+    "gaussian_base_sigma": 0.001, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ], 
+    "loss_pre_0": 0.0012966992799192667, 
+    "loss_pre_1": 7.028964319033548e-05, 
+    "loss_pre_2": 2.775927168841008e-05, 
+    "loss_pre_3": 5.103748117107898e-05
+  }, 
+  "ed_o-adadelta-dr-0.001-gbs-0.001-gsf-2-l1-0-l2-0.002": {
+    "acc_pre_0": 0.8333333333333334, 
+    "acc_pre_1": 1.0, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 1.0, 
+    "drop_rate": 0.001, 
+    "enc_use_drop": true, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 100, 
+    "gaussian_base_sigma": 0.001, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ], 
+    "loss_pre_0": 0.003266741521656513, 
+    "loss_pre_1": 1.2931132914673071e-05, 
+    "loss_pre_2": 2.189522341211614e-09, 
+    "loss_pre_3": 2.3203436949614797e-09
+  }, 
+  "ed_o-adadelta-dr-0.001-gbs-0.001-gsf-2-l1-0-l2-0.005": {
+    "acc_pre_0": 0.5, 
+    "acc_pre_1": 1.0, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 0.9666666666666667, 
+    "drop_rate": 0.001, 
+    "enc_use_drop": true, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 10, 
+    "gaussian_base_sigma": 0.001, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ], 
+    "loss_pre_0": 0.0028363806195557117, 
+    "loss_pre_1": 8.602011803304777e-06, 
+    "loss_pre_2": 3.5136333842444856e-09, 
+    "loss_pre_3": 1.766822606441565e-05
+  }, 
+  "ed_o-adadelta-dr-0.001-gbs-0.001-gsf-2-l1-0-l2-0.01": {
+    "acc_pre_0": 0.3333333333333333, 
+    "acc_pre_1": 0.9666666666666667, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 1.0, 
+    "drop_rate": 0.001, 
+    "enc_use_drop": true, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "adadelta", 
+    "epochs": 10, 
+    "gaussian_base_sigma": 0.001, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ], 
+    "loss_pre_0": 0.00771290622651577, 
+    "loss_pre_1": 1.6211024558288045e-05, 
+    "loss_pre_2": 2.1333843580606526e-09, 
+    "loss_pre_3": 2.3408635030364167e-09
+  }, 
+  "ed_o-rmsprop-dr-0-gbs-0.0-gsf-1": {
+    "drop_rate": 0, 
+    "enc_use_drop": false, 
+    "enc_use_noise": false, 
+    "encdec_optimizer": "rmsprop", 
+    "epochs": 120, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 1, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_o-rmsprop-dr-0-gbs-0.001-gsf-1": {
+    "drop_rate": 0, 
+    "enc_use_drop": false, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "rmsprop", 
+    "epochs": 120, 
+    "gaussian_base_sigma": 0.001, 
+    "gaussian_sigma_factor": 1, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_o-rmsprop-dr-0-gbs-0.001-gsf-1.1": {
+    "drop_rate": 0, 
+    "enc_use_drop": false, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "rmsprop", 
+    "epochs": 120, 
+    "gaussian_base_sigma": 0.001, 
+    "gaussian_sigma_factor": 1.1, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_o-rmsprop-dr-0-gbs-0.001-gsf-2": {
+    "drop_rate": 0, 
+    "enc_use_drop": false, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "rmsprop", 
+    "epochs": 120, 
+    "gaussian_base_sigma": 0.001, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_o-rmsprop-dr-0-gbs-0.01-gsf-1": {
+    "drop_rate": 0, 
+    "enc_use_drop": false, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "rmsprop", 
+    "epochs": 120, 
+    "gaussian_base_sigma": 0.01, 
+    "gaussian_sigma_factor": 1, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ]
+  }, 
+  "ed_o-rmsprop-dr-0-gbs-0.01-gsf-1.1": {
+    "acc_pre_0": 1.0, 
+    "acc_pre_1": 0.7333333333333333, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 1.0, 
+    "drop_rate": 0, 
+    "enc_use_drop": false, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "rmsprop", 
+    "epochs": 120, 
+    "gaussian_base_sigma": 0.01, 
+    "gaussian_sigma_factor": 1.1, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ], 
+    "loss_pre_0": 0.001569460378959775, 
+    "loss_pre_1": 0.00023716504801996052, 
+    "loss_pre_2": 2.112141010002233e-05, 
+    "loss_pre_3": 3.653575186035596e-05
+  }, 
+  "ed_o-rmsprop-dr-0-gbs-0.01-gsf-2": {
+    "acc_pre_0": 0.9666666666666667, 
+    "acc_pre_1": 0.9666666666666667, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 1.0, 
+    "drop_rate": 0, 
+    "enc_use_drop": false, 
+    "enc_use_noise": true, 
+    "encdec_optimizer": "rmsprop", 
+    "epochs": 120, 
+    "gaussian_base_sigma": 0.01, 
+    "gaussian_sigma_factor": 2, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ], 
+    "loss_pre_0": 0.000497658213134855, 
+    "loss_pre_1": 5.3912834118818864e-05, 
+    "loss_pre_2": 1.727502421999816e-05, 
+    "loss_pre_3": 2.4973476683953777e-05
+  }, 
+  "ed_o-rmsprop-dr-0.001-gbs-0.0-gsf-1": {
+    "acc_pre_0": 0.9, 
+    "acc_pre_1": 0.9, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 0.9666666666666667, 
+    "drop_rate": 0.001, 
+    "enc_use_drop": true, 
+    "enc_use_noise": false, 
+    "encdec_optimizer": "rmsprop", 
+    "epochs": 120, 
+    "gaussian_base_sigma": 0.0, 
+    "gaussian_sigma_factor": 1, 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16, 
+      8
+    ], 
+    "loss_pre_0": 0.0052160704508423805, 
+    "loss_pre_1": 6.932623364264145e-05, 
+    "loss_pre_2": 5.236691140453331e-05, 
+    "loss_pre_3": 0.00010158147051697597
+  }, 
+  "latest": {
+    "data": "151213-215033", 
+    "layer_sizes": [
+      100, 
+      64, 
+      32, 
+      16
+    ], 
+    "maxes": [
+      18066.11883398434, 
+      18064.163927529447, 
+      18048.988900598048, 
+      17987.694017971473, 
+      20621.197766323603, 
+      17865.26649185644, 
+      15292.603577112966, 
+      14069.612626993277, 
+      15657.019662915198, 
+      15277.033038613052, 
+      17727.373961427886, 
+      15373.762968285557, 
+      16359.476202886948, 
+      21305.231456017755, 
+      146.87441392412686, 
+      332.16082460710635, 
+      6430.410624984122, 
+      10945.045359245534, 
+      12431.287898135464, 
+      12615.989469741176, 
+      16976.828191558845, 
+      17309.29327040931, 
+      12759.270253287756, 
+      15700.004645206416, 
+      12901.019204049344, 
+      4227.912752968285, 
+      11995.651312774224, 
+      15194.339883503475, 
+      158.29475747373957, 
+      597.2266925420149, 
+      4229.644376344074, 
+      6293.787563474488, 
+      6634.848274791623, 
+      9355.384423350411, 
+      9600.634281444012, 
+      9881.983896522546, 
+      7711.917364069354, 
+      9579.271027748673, 
+      7781.981258525979, 
+      7832.228282958931, 
+      9907.039356831876, 
+      9801.371226444224, 
+      6378.786708702281, 
+      5362.376438761903, 
+      9347.217677449888, 
+      8522.949642489815, 
+      9336.195332658019, 
+      2847.887754343439, 
+      9162.683776869984, 
+      10245.67780864469, 
+      467820.4591972682, 
+      318821.3784034845, 
+      456361.98365156853, 
+      154940.1400909146, 
+      149935.34964447818, 
+      155127.4762982993, 
+      136799.82612186228, 
+      120347.35532890185, 
+      118809.41990507554, 
+      136710.32259016388, 
+      112607.65872706466, 
+      134231.51056995173, 
+      90775.95629471388, 
+      107605.41876890838, 
+      103524.19008132876, 
+      116716.19472031735, 
+      66932.01668608315, 
+      71430.54670560034, 
+      60006.09581953814, 
+      58536.62620468944, 
+      60683.267881639564, 
+      64013.904458497615, 
+      55461.421929783864, 
+      45452.20662658173, 
+      61462.82596062554, 
+      60988.03225650177, 
+      39594.37465916991, 
+      44122.53599207794, 
+      47271.84509174342, 
+      71828.83091095832, 
+      61645.69432526238, 
+      46674.41524540805, 
+      46200.084543212746, 
+      52167.77817934937, 
+      42000.699429333625, 
+      53167.86023004962, 
+      46838.03347012826, 
+      35009.97015716138, 
+      42166.31333025511, 
+      41087.29103640475, 
+      35027.297673734276, 
+      28329.721322367397, 
+      32052.539635829115, 
+      29463.621703000572, 
+      35901.10489305441, 
+      36960.08130899045, 
+      2251.7000000000003, 
+      562.1, 
+      2252.8, 
+      562.1
+    ]
+  }, 
+  "o-rmsprop-dr-0-gbs-0.0-gsf-1": {
+    "acc_pre_0": 0.9285714285714286, 
+    "acc_pre_1": 1.0, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 1.0, 
+    "loss_pre_0": 0.0026478487998247147, 
+    "loss_pre_1": 5.767967741121538e-05, 
+    "loss_pre_2": 3.8923324609640986e-05, 
+    "loss_pre_3": 2.0490168026299216e-05
+  }, 
+  "o-rmsprop-dr-0-gbs-0.001-gsf-1": {
+    "acc_pre_0": 0.9285714285714286, 
+    "acc_pre_1": 0.8571428571428571, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 1.0, 
+    "loss_pre_0": 0.0020783180370926857, 
+    "loss_pre_1": 9.606765524949878e-05, 
+    "loss_pre_2": 1.354742835246725e-05, 
+    "loss_pre_3": 3.697341162478551e-05
+  }, 
+  "o-rmsprop-dr-0-gbs-0.001-gsf-1.1": {
+    "acc_pre_0": 1.0, 
+    "acc_pre_1": 1.0, 
+    "acc_pre_2": 0.8571428571428571, 
+    "acc_pre_3": 1.0, 
+    "loss_pre_0": 0.0008729839464649558, 
+    "loss_pre_1": 8.317932224599645e-05, 
+    "loss_pre_2": 4.182706470601261e-05, 
+    "loss_pre_3": 3.46023662132211e-05
+  }, 
+  "o-rmsprop-dr-0-gbs-0.001-gsf-2": {
+    "acc_pre_0": 1.0, 
+    "acc_pre_1": 0.8571428571428571, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 1.0, 
+    "loss_pre_0": 0.0003432460653129965, 
+    "loss_pre_1": 3.1446779757970944e-05, 
+    "loss_pre_2": 1.4887375073158182e-05, 
+    "loss_pre_3": 5.477517333929427e-05
+  }, 
+  "o-rmsprop-dr-0-gbs-0.01-gsf-1": {
+    "acc_pre_0": 0.9285714285714286, 
+    "acc_pre_1": 0.7857142857142857, 
+    "acc_pre_2": 1.0, 
+    "acc_pre_3": 1.0, 
+    "loss_pre_0": 0.002089522546157241, 
+    "loss_pre_1": 7.336555427173153e-05, 
+    "loss_pre_2": 0.00016167857393156737, 
+    "loss_pre_3": 4.743283716379665e-05
+  }
+}
