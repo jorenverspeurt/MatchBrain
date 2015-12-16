@@ -412,21 +412,13 @@ class AutoTransformer(Transformer):
             self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
 
     def load_model(self, f_name = None):
-        if not self.model and not f_name:
-            self.new_model(compile=False)
-        elif f_name:
-            if not self.model:
-                f_name_sizes = self.get_from_catalog("layer_sizes", f_name)
-                latest_sizes = self.get_from_catalog("layer_sizes")
-                self.layer_sizes = f_name_sizes or latest_sizes
-                self.new_model(fresh = True, compile = False)
-            self.model_name = f_name
-        else:
-            pass #?
+        self.model_name = f_name or self.model_name
+        self.layer_sizes = self.get_from_catalog("layer_sizes", self.model_name)
         self.cls_opt = self.get_from_catalog("class_optimizer", self.model_name)
         self.cls_lss = self.get_from_catalog("class_loss", self.model_name)
         self.sigma_base = self.get_from_catalog("gaussian_base_sigma", self.model_name)
         self.sigma_fact = self.get_from_catalog("gaussian_sigma_factor", self.model_name)
+        self.new_model(fresh=True, compile=False)
         self.model.load_weights(self.model_dir + self.prefix + self.model_name)
         self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
 
