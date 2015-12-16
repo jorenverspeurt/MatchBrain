@@ -415,7 +415,7 @@ class AutoTransformer(Transformer):
         if not self.model and not f_name:
             self.new_model(compile=False)
         elif f_name:
-            if not self.model():
+            if not self.model:
                 f_name_sizes = self.get_from_catalog("layer_sizes", f_name)
                 latest_sizes = self.get_from_catalog("layer_sizes")
                 self.layer_sizes = f_name_sizes or latest_sizes
