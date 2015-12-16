@@ -155,15 +155,15 @@ class AutoTransformer(Transformer):
                 ,mode = TRAINING
                 ,batch_size = 60
                 ,epochs = 60
-                ,num_sizes = 4
+                ,num_sizes = 5
                 ,encdec_optimizer = 'rmsprop'
                 ,class_optimizer = 'adadelta'
                 ,class_loss = 'categorical_crossentropy'
-                ,drop_rate = 0.1
-                ,gauss_base_sigma = 0.0
+                ,drop_rate = 0.001
+                ,gauss_base_sigma = 0.001
                 ,gauss_sigma_factor = 2
                 ,l1 = 0.0
-                ,l2 = 0.0
+                ,l2 = 0.001
                 ,model_name = 'latest'
                 ,encdecs_name = None):
         if mode is AutoTransformer.TUNING: raise ValueError("Can't instantiate an AT in 'tuning' mode")
@@ -423,6 +423,10 @@ class AutoTransformer(Transformer):
             self.model_name = f_name
         else:
             pass #?
+        self.cls_opt = self.get_from_catalog("class_optimizer", self.model_name)
+        self.cls_lss = self.get_from_catalog("class_loss", self.model_name)
+        self.sigma_base = self.get_from_catalog("gaussian_base_sigma", self.model_name)
+        self.sigma_fact = self.get_from_catalog("gaussian_sigma_factor", self.model_name)
         self.model.load_weights(self.model_dir + self.prefix + self.model_name)
         self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
 
@@ -486,7 +490,9 @@ class AutoTransformer(Transformer):
             "drop_rate": self.drop_rate,
             "enc_use_noise": self.enc_use_noise,
             "gaussian_base_sigma": self.sigma_base,
-            "gaussian_sigma_factor": self.sigma_fact
+            "gaussian_sigma_factor": self.sigma_fact,
+            "l1": self.l1,
+            "l2": self.l2
         }
         return info
 
@@ -498,7 +504,9 @@ class AutoTransformer(Transformer):
             "class_loss": self.cls_lss,
             "drop_rate": self.drop_rate,
             "gaussian_base_sigma": self.sigma_base,
-            "gaussian_sigma_factor": self.sigma_fact
+            "gaussian_sigma_factor": self.sigma_fact,
+            "l1": self.l1,
+            "l2": self.l2
         }
         return info
 
