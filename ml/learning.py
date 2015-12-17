@@ -413,6 +413,8 @@ class AutoTransformer(Transformer):
 
     def load_model(self, f_name = None):
         self.model_name = f_name or self.model_name
+        if not self.get_from_catalog("layer_sizes", self.model_name):
+            raise ValueError("Wrong model name?")
         self.layer_sizes = self.get_from_catalog("layer_sizes", self.model_name)
         self.cls_opt = self.get_from_catalog("class_optimizer", self.model_name)
         self.cls_lss = self.get_from_catalog("class_loss", self.model_name)

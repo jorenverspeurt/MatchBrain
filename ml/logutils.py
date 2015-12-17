@@ -5,9 +5,9 @@ import json
 from datetime import datetime, timedelta
 from itertools import repeat
 
-from core.TrainView import phase_names
 from signals.primitive import GenSource, SignalBlock, Transformer
 
+phase_names = ['DISTRACT', 'RELAXOPEN', 'RELAXCLOSED', 'CASUAL', 'INTENSE']
 
 def interp_vals(val1, val2, index, total):
     return val1 + ( (val2-val1) * (index/total) )
