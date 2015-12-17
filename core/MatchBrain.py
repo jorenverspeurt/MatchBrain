@@ -45,38 +45,39 @@ if __name__ == '__main__':
     rootLogger.addHandler(rootHandler)
     ph_source = Source(lambda: "DISTRACT")
     if not demo:
-        dataLogger = logging.getLogger('data')
-        dataLogger.setLevel(logging.INFO)
-        jsonHandler = CustomHandler(
-            '../logs/'+nickname+dt.now().strftime('%Y-%m-%dT%H:%M')+'.json',
-            {'nick': nickname, 'startTime': dt.now(), 'version': version})
-        dataLogger.addHandler(jsonHandler)
-        bwSource = BrainWaveSource()
-    else:
-        bwSource = Source(lambda: [random.random()*4096-2048 for i in xrange(512)])
-    prep = Preprocessing(bwSource)
-    ae = AutoTransformer(prep.output_dim, prep, ph_source, batch_size=1, num_sizes=5, epochs=15, model_name=nickname)
-    ae.load_encdecs("o-adadelta-dr-0.001-gbs-0.001-gsf-2-l1-0-l2-0.001")
-    bwSink = Sink([bwSource], logging.getLogger('data.brainwave').info)
-    def bwUpdate(sources, sink, seconds):
-        dataLogger.debug('before internal')
-        def internal():
-            #next_call = time.time()
-            while True:
-                dataLogger.debug('internal 1')
-                #next_call = next_call + seconds
-                for source in sources:
-                    source.push()
-                dataLogger.debug('internal pushed')
-                sink.pull()
-                dataLogger.debug('internal pulled')
-                time.sleep(seconds) #abs(next_call - time.time())) #DIRTY
-        return internal
-    timer = threading.Thread(target = bwUpdate([bwSource, ph_source], bwSink, 1))
-    timer.daemon = True
-    timer.start()
+        if not test:
+            dataLogger = logging.getLogger('data')
+            dataLogger.setLevel(logging.INFO)
+            jsonHandler = CustomHandler(
+                '../logs/'+nickname+dt.now().strftime('%Y-%m-%dT%H:%M')+'.json',
+                {'nick': nickname, 'startTime': dt.now(), 'version': version})
+            dataLogger.addHandler(jsonHandler)
+            bwSource = BrainWaveSource()
+        else:
+            bwSource = Source(lambda: [random.random()*4096-2048 for i in xrange(512)])
+        prep = Preprocessing(bwSource)
+        ae = AutoTransformer(prep.output_dim, prep, ph_source, batch_size=1, num_sizes=5, epochs=15, model_name=nickname)
+        ae.load_encdecs("o-adadelta-dr-0.001-gbs-0.001-gsf-2-l1-0-l2-0.001")
+        bwSink = Sink([bwSource], logging.getLogger('data.brainwave').info)
+        def bwUpdate(sources, sink, seconds):
+            dataLogger.debug('before internal')
+            def internal():
+                #next_call = time.time()
+                while True:
+                    dataLogger.debug('internal 1')
+                    #next_call = next_call + seconds
+                    for source in sources:
+                        source.push()
+                    dataLogger.debug('internal pushed')
+                    sink.pull()
+                    dataLogger.debug('internal pulled')
+                    time.sleep(seconds) #abs(next_call - time.time())) #DIRTY
+            return internal
+        timer = threading.Thread(target = bwUpdate([bwSource, ph_source], bwSink, 1))
+        timer.daemon = True
+        timer.start()
     # Start the game!
     pyglet.resource.path = ['../resources']
     pyglet.resource.reindex()
-    game(scene=setup(test, ph_source, [ae.finetune, lambda: ae.change_mode(ae.USING)]))
+    game(scene=setup(test, ph_source, [] if demo else [ae.finetune, lambda: ae.change_mode(ae.USING)]))
     cleanup()

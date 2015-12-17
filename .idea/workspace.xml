@@ -1,18 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="BookmarkManager">
-    <bookmark url="file://$PROJECT_DIR$/core/GameModel.py" line="413" />
+    <bookmark url="file://$PROJECT_DIR$/core/GameModel.py" line="335" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6904720f-433c-4696-87df-0409892a4795" name="Default" comment="Couple of changes needed to put in the new multiple objective system, committing to be able to do a merge later.">
+    <list default="true" id="6904720f-433c-4696-87df-0409892a4795" name="Default" comment="Quick changes to make testing with the AT on possible, not everything works.">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/n-cherries.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/n-grapes.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/n-lemon.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/n-orange.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/n-pear.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/n-tomato.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/o-carrot.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/s-blue.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/s-green.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/s-orange.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/s-purple.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/resources/s-red.png" />
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/core/objectives.py" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/resources/46.png" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/resources/48.png" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/resources/49.png" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/resources/54.png" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/resources/55.png" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/resources/56.png" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/GameModel.py" afterPath="$PROJECT_DIR$/core/GameModel.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/MatchBrain.py" afterPath="$PROJECT_DIR$/core/MatchBrain.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/Menus.py" afterPath="$PROJECT_DIR$/core/Menus.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/core/TrainView.py" afterPath="$PROJECT_DIR$/core/TrainView.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ml/learning.py" afterPath="$PROJECT_DIR$/ml/learning.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/models/catalog.json" afterPath="$PROJECT_DIR$/models/catalog.json" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/signals/primitive.py" afterPath="$PROJECT_DIR$/signals/primitive.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ml/logutils.py" afterPath="$PROJECT_DIR$/ml/logutils.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/run_learning.py" afterPath="$PROJECT_DIR$/run_learning.py" />
     </list>
     <ignored path="MatchBrain.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -37,7 +54,7 @@
         <entry file="file://$PROJECT_DIR$/ml/learning.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="331" column="83" selection-start-line="331" selection-start-column="83" selection-end-line="331" selection-end-column="83" />
+              <caret line="338" column="18" selection-start-line="338" selection-start-column="18" selection-end-line="338" selection-end-column="18" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -45,11 +62,57 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="test2015-12-15T13:26.json" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/logs/test2015-12-15T13:26.json">
+      <file leaf-file-name="GameModel.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/core/GameModel.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.8607595">
+              <caret line="125" column="12" selection-start-line="125" selection-start-column="12" selection-end-line="125" selection-end-column="12" />
+              <folding>
+                <element signature="e#53#67#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="logutils.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/ml/logutils.py">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+              <caret line="155" column="25" selection-start-line="155" selection-start-column="25" selection-end-line="155" selection-end-column="25" />
+              <folding>
+                <element signature="e#0#37#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="run_learning.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/run_learning.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="302" column="29" selection-start-line="302" selection-start-column="29" selection-end-line="302" selection-end-column="29" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="objectives.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/core/objectives.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="63" column="42" selection-start-line="63" selection-start-column="42" selection-end-line="63" selection-end-column="42" />
+              <folding>
+                <element signature="e#0#42#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="cristaline2015-10-01T15:14.json" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/logs/cristaline2015-10-01T15:14.json">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="806.875">
+              <caret line="191" column="51" selection-start-line="191" selection-start-column="51" selection-end-line="191" selection-end-column="51" />
               <folding />
             </state>
           </provider>
@@ -85,14 +148,12 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="MatchBrain.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="MatchBrain.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/core/MatchBrain.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.60537636">
-              <caret line="61" column="0" selection-start-line="61" selection-start-column="0" selection-end-line="61" selection-end-column="0" />
-              <folding>
-                <element signature="e#22#36#0" expanded="true" />
-              </folding>
+            <state vertical-scroll-proportion="0.0">
+              <caret line="81" column="53" selection-start-line="81" selection-start-column="53" selection-end-line="81" selection-end-column="53" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -135,15 +196,16 @@
         <option value="$PROJECT_DIR$/models/catalog.json" />
         <option value="/usr/lib/python2.7/site-packages/keras/backend/common.py" />
         <option value="$PROJECT_DIR$/core/HUD.py" />
-        <option value="$PROJECT_DIR$/ml/logutils.py" />
-        <option value="$PROJECT_DIR$/run_learning.py" />
         <option value="$PROJECT_DIR$/core/GameView.py" />
-        <option value="$PROJECT_DIR$/core/GameModel.py" />
         <option value="$PROJECT_DIR$/core/Menus.py" />
         <option value="$PROJECT_DIR$/signals/primitive.py" />
-        <option value="$PROJECT_DIR$/ml/learning.py" />
         <option value="$PROJECT_DIR$/core/TrainView.py" />
         <option value="$PROJECT_DIR$/core/MatchBrain.py" />
+        <option value="$PROJECT_DIR$/core/objectives.py" />
+        <option value="$PROJECT_DIR$/ml/logutils.py" />
+        <option value="$PROJECT_DIR$/ml/learning.py" />
+        <option value="$PROJECT_DIR$/run_learning.py" />
+        <option value="$PROJECT_DIR$/core/GameModel.py" />
       </list>
     </option>
   </component>
@@ -233,35 +295,7 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="models" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="MatchBrain" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="MatchBrain" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
               <option name="myItemId" value="ml" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="MatchBrain" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="MatchBrain" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="mindwavemobile" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -306,6 +340,7 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/models" />
       <recent name="$PROJECT_DIR$/ml" />
       <recent name="$PROJECT_DIR$/elements" />
     </key>
@@ -580,32 +615,56 @@
       <option name="project" value="LOCAL" />
       <updated>1450165155348</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Quick changes to make testing with the AT on possible, not everything works.">
+      <created>1450220553374</created>
+      <option name="number" value="00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1450220553374</updated>
+    </task>
+    <task id="LOCAL-00014" summary="Some changes to model loading and saving">
+      <created>1450231536264</created>
+      <option name="number" value="00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1450231536264</updated>
+    </task>
+    <task id="LOCAL-00015" summary="Ugh">
+      <created>1450234264803</created>
+      <option name="number" value="00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1450234264803</updated>
+    </task>
+    <task id="LOCAL-00016" summary="Load load load">
+      <created>1450235281089</created>
+      <option name="number" value="00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1450235281089</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="43" y="0" width="1073" height="1080" extended-state="0" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.49666983" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1889313" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1889313" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3991727" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.49666983" order="12" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.228125" sideWeight="0.4933206" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25104168" sideWeight="0.5066794" order="8" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3375" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3991727" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3375" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.228125" sideWeight="0.4933206" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="Vcs.Log.UiProperties">
@@ -633,12 +692,16 @@
     <MESSAGE value="The AutoTransformer stuff should work now, I did change it to batch in stead of online learning for the time being, still have to try different settings to get the durn thang to learn properly (it's confused by a difference in available data for the different stages at the moment). I'm starting work on changing certain aspects of the game itself." />
     <MESSAGE value="Changed the colors of the fruit based on user feedback, also changed size of 1. Added new objectives sidebar, new objectives aren't yet available though. Added a script that does grid search for the classifier, specifically made to be run on my DO droplet. To write that script I had to rewrite a lot of ml.learning, so it's a lot more general now." />
     <MESSAGE value="Couple of changes needed to put in the new multiple objective system, committing to be able to do a merge later." />
-    <option name="LAST_COMMIT_MESSAGE" value="Couple of changes needed to put in the new multiple objective system, committing to be able to do a merge later." />
+    <MESSAGE value="Quick changes to make testing with the AT on possible, not everything works." />
+    <MESSAGE value="Some changes to model loading and saving" />
+    <MESSAGE value="Ugh" />
+    <MESSAGE value="Load load load" />
+    <option name="LAST_COMMIT_MESSAGE" value="Load load load" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="10" />
+      <option name="time" value="11" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -804,13 +867,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/logs/cristaline2015-10-01T15:14.json">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/lib/python2.7/site-packages/sklearn/cross_validation.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -909,30 +965,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/run_learning.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="184" column="10" selection-start-line="184" selection-start-column="10" selection-end-line="184" selection-end-column="10" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/core/GameModel.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="127" column="0" selection-start-line="127" selection-start-column="0" selection-end-line="127" selection-end-column="0" />
-          <folding>
-            <element signature="e#25#39#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ml/logutils.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="77" column="31" selection-start-line="77" selection-start-column="31" selection-end-line="77" selection-end-column="31" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/core/Menus.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -966,6 +998,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="204" column="0" selection-start-line="204" selection-start-column="0" selection-end-line="204" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
@@ -973,6 +1006,14 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="147" column="0" selection-start-line="147" selection-start-column="0" selection-end-line="147" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/logs/cristaline2015-10-01T15:14.json">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="806.875">
+          <caret line="191" column="51" selection-start-line="191" selection-start-column="51" selection-end-line="191" selection-end-column="51" />
           <folding />
         </state>
       </provider>
@@ -985,30 +1026,58 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ml/learning.py">
+    <entry file="file://$PROJECT_DIR$/core/MatchBrain.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="331" column="83" selection-start-line="331" selection-start-column="83" selection-end-line="331" selection-end-column="83" />
+          <caret line="81" column="53" selection-start-line="81" selection-start-column="53" selection-end-line="81" selection-end-column="53" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/core/objectives.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="63" column="42" selection-start-line="63" selection-start-column="42" selection-end-line="63" selection-end-column="42" />
+          <folding>
+            <element signature="e#0#42#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ml/logutils.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="155" column="25" selection-start-line="155" selection-start-column="25" selection-end-line="155" selection-end-column="25" />
           <folding>
             <element signature="e#0#37#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/logs/test2015-12-15T13:26.json">
+    <entry file="file://$PROJECT_DIR$/ml/learning.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <caret line="338" column="18" selection-start-line="338" selection-start-column="18" selection-end-line="338" selection-end-column="18" />
+          <folding>
+            <element signature="e#0#37#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/run_learning.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="302" column="29" selection-start-line="302" selection-start-column="29" selection-end-line="302" selection-end-column="29" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/core/MatchBrain.py">
+    <entry file="file://$PROJECT_DIR$/core/GameModel.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.60537636">
-          <caret line="61" column="0" selection-start-line="61" selection-start-column="0" selection-end-line="61" selection-end-column="0" />
+        <state vertical-scroll-proportion="0.8607595">
+          <caret line="125" column="12" selection-start-line="125" selection-start-column="12" selection-end-line="125" selection-end-column="12" />
           <folding>
-            <element signature="e#22#36#0" expanded="true" />
+            <element signature="e#53#67#0" expanded="true" />
           </folding>
         </state>
       </provider>

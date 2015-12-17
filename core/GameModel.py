@@ -1,14 +1,13 @@
-__all__ = ['GameModel']
+__all__ = ['GameModel', 'ROWS_COUNT', 'COLS_COUNT']
 
 import logging
-from glob import glob
 from math import log
-from random import choice, randint
 
 import pyglet
 from cocos.actions import *
 from cocos.sprite import Sprite
 
+from core.objectives import *
 from status import status
 
 CELL_WIDTH, CELL_HEIGHT = 100, 100
@@ -23,78 +22,9 @@ DROPPING_TILES = 'dropping_tiles'
 NEXT_LEVEL = 'next_level'
 GAME_OVER = 'game_over'
 
-class GameEvent(object):
-    def __init__(self
-                 ,type = ''
-                 ,effect = lambda x: x):
-        self.type = type
-        self.effect = effect
-
-class GameCondition(object):
-    def __init__(self
-                 ,type = ''
-                 ,value = None
-                 ,condition = lambda x: True):
-        self.value = value
-        self.condition = condition
-        self.type = type
-        self.satisfied = False
-
-    def handle(self, event):
-        if not self.satisfied and event.type == self.type:
-            self.value = event.effect(self.value)
-            self.satisfied = self.condition(self.value)
-        return self
-
-class MultipleConditions(GameCondition):
-    def __init__(self, conds):
-        GameCondition.__init__(self, 'any', conds, lambda cs: all(c.satisfied for c in cs))
-
-    def handle(self, event):
-        if not self.satisfied:
-            self.value = map(lambda v: v.handle(event), self.value)
-            self.satisfied = self.condition(self.value)
-        return self
-
-class GameAction(object):
-    def __init__(self
-                 ,with_board = None
-                 ,with_drops = None
-                 ,with_score = None
-                 ,message = ""):
-        self.with_board = with_board or (lambda x: x)
-        self.with_drops = with_drops or (lambda x: x)
-        self.with_score = with_score or (lambda x: x)
-        self.message = message
-
-class Objective(object):
-    def __init__(self,
-                 parent,
-                 aop = 'action',
-                 time = 30,
-                 start = None,
-                 stop = GameCondition(),
-                 cleanup = GameAction()):
-        self.parent = parent
-        self.aop = aop
-        self.time = time
-        self.stop = stop
-        self.cleanup = cleanup
-        if start:
-            for ga in start:
-                parent.register_game_action(ga)
-        parent.add_time(time)
-
-    def process_events(self, events):
-        for event in events:
-            self.stop.handle(event)
-        if self.stop.satisfied:
-            self.parent.register_game_action(self.cleanup)
-            return True
-        else:
-            return False
-
 class GameModel(pyglet.event.EventDispatcher):
+    available_tiles = [s.replace('../resources/', '') for s in glob('../resources/n-*.png')]
+
     def __init__(self, hud_offset = 0):
         super(GameModel, self).__init__()
         self.HUD_OFFSET = hud_offset
@@ -103,7 +33,6 @@ class GameModel(pyglet.event.EventDispatcher):
         self.dropping_tiles = []  # List of tile sprites being dropped, used during DROPPING_TILES
         self.swap_start_pos = None  # Position of the first tile clicked for swapping
         self.swap_end_pos = None  # Position of the second tile clicked for swapping
-        self.available_tiles = [s.replace('../resources/', '') for s in glob('../resources/*.png')]
         self._game_state = WAITING_PLAYER_MOVEMENT
         self.objectives = []
         self.stateLogger = logging.getLogger('data.game.state')
@@ -190,18 +119,9 @@ class GameModel(pyglet.event.EventDispatcher):
             self.objectives = objectives
             self.dispatch_event("on_update_objectives")
         else:
-            types = self.get_objective_types()
-
-            objectives = map(lambda t: self.objective_for_difficulty(t, self.difficulty_for(t)))
-
-
-    def get_objective_types(self):
-        # TODO tie this into the learner system
-        return ['3kinds', 'puzzle0']
-
-    def objective_for_difficulty(self, type, difficulty):
-        if type == '3kinds':
-            value = {tile: (count, sprite) for _ in xrange(3) for tile in (choice(self.available_tiles))}
+            pass
+            #types = self.get_objective_types()
+            #self.objectives = map(lambda t: self.objective_for_difficulty(t, self.difficulty_for(t)), types)
 
     def fill_with_random_tiles(self):
         """

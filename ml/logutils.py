@@ -2,8 +2,9 @@ from __future__ import print_function
 
 import glob
 import json
+import random
 from datetime import datetime, timedelta
-from itertools import repeat
+from itertools import repeat, takewhile, groupby
 
 from core.TrainView import phase_names
 from signals.primitive import GenSource, SignalBlock, Transformer
@@ -71,34 +72,68 @@ def all_m_to_a():
     return with_msecs.keys()
 
 class LogSourceMaker(object):
-    def __init__(self, clean_seconds = 3, logfolder = None):
+    def __init__(self, clean_seconds = 3, logfolder = None, phases = None, cross_val = False):
         if logfolder:
             all_dict = loadall(logfolder=logfolder)
         else:
             all_dict = loadall()
-        self.phases = phase_names
+        self.seen_val_names = []
+        if cross_val:
+            def tname_for(fname):
+                takewhile(lambda c: c!='2', fname)
+            #tester_names = sorted(list(set(map(tname_for, all_dict.keys))))
+            all_dict = reduce(dict.update,
+                              {f: all_dict[max(g)]
+                               for f,g in groupby(sorted(all_dict.iterkeys()), tname_for)}, {})
+            val_name = random.choice(all_dict.keys())
+            self.seen_val_names.append(val_name)
+            self.val_dict = {val_name: all_dict[val_name]}
+            self.all_dict = {k:v for (k,v) in all_dict.iteritems() if not k is val_name}
+        else:
+            self.val_dict = {}
+            self.all_dict = all_dict
+        self.phases = phases or phase_names
         #self.phases.append('none')
-        self.raws_per_phase = []
+        self.clean_seconds = clean_seconds
+        self.raws_per_phase = self.to_raws_per_phase(all_dict)
+        self.rpp_val = self.to_raws_per_phase(self.val_dict)
+
+    def cross_val_next(self):
+        all_dict = self.all_dict
+        all_dict.update(self.val_dict)
+        next_val = random.choice(all_dict.keys())
+        while next_val in self.seen_val_names:
+            next_val = random.choice(all_dict.keys())
+        self.val_dict = {next_val: all_dict[next_val]}
+        self.all_dict = {k:v for (k,v) in all_dict.iteritems() if not k is next_val}
+        self.raws_per_phase = self.to_raws_per_phase(self.all_dict)
+        self.rpp_val = self.to_raws_per_phase(self.val_dict)
+
+    def to_raws_per_phase(self, a_dict):
+        result = []
         cur_phase = phase_names[0]
-        for p in all_dict.keys():
-            cur_part = all_dict[p]
+        for p in a_dict.keys():
+            cur_part = a_dict[p]
             seen_phase = False
-            clean_counter = clean_seconds
+            clean_counter = self.clean_seconds
             for li in cur_part:
                 if "data" in li:
-                    if "train" in li["data"]:
+                    if "train" in li["data"] and li["data"]["train"]["phase"] in self.phases:
                         cur_phase = li["data"]["train"]["phase"]
                         seen_phase = True
-                        clean_counter = clean_seconds
+                        clean_counter = self.clean_seconds
                     elif "brainwave" in li["data"]:
                         if clean_counter > 0:
                             clean_counter -= 1
                         else:
-                            self.raws_per_phase.append((cur_phase
-                                                        if seen_phase
-                                                        else "DISTRACT"
-                                                       ,li["data"]["brainwave"]["raw"]))
-        #TODO ?
+                            result.append((cur_phase
+                                           if seen_phase
+                                           else "DISTRACT"
+                                          ,li["data"]["brainwave"]["raw"]))
+                    else:
+                        # Skip data for "phases" that aren't in the list
+                        pass
+        return result
 
     def get_block(self, shift = 1):
         a_meas = self.raws_per_phase[0][1]

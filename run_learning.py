@@ -1,10 +1,10 @@
 from __future__ import print_function
 
+import datetime as dt
 import json
 import logging
 import time
 from itertools import repeat
-import datetime as dt
 
 import numpy as np
 from keras import backend as K
@@ -66,29 +66,31 @@ pretrain_encdecs = False
 continue_encdecs = False
 finetune = False
 continue_finetune = False
-evaluate_model = True
+evaluate_model = False
+cross_validate = True
 
 def update_status(ae, key, value):
-	with open(ae.model_dir + "status.json", 'r') as f:
-		status = json.loads(f.read())
-		if key == "history":
-			status.setdefault("history", []).insert(0, value)
-		else:
-			status[key] = value
-	with open(ae.model_dir + "status.json", 'w') as f:
-		f.write(json.dumps(status, indent=2, sort_keys=True))
+    with open(ae.model_dir + "status.json", 'r') as f:
+        status = json.loads(f.read())
+        if key == "history":
+            status.setdefault("history", []).insert(0, value)
+        else:
+            status[key] = value
+    with open(ae.model_dir + "status.json", 'w') as f:
+        f.write(json.dumps(status, indent=2, sort_keys=True))
 
 if __name__ == '__main__':
     ### SETUP ###
-    l = LogSourceMaker(logfolder="/root/MatchBrain/logs/")
-    b = l.get_block(shift = shift)
-    bws = b.sources[0]
-    phs = b.sources[1]
-    prep = Preprocessing(bws)
-    print("prep output dim: "+str(prep.output_dim))
-    AutoTransformer.model_dir = "/root/MatchBrain/models/"
-    ae = AutoTransformer(prep.output_dim, prep, phs, epochs=epochs, num_sizes=5)
-    print("have ae")
+    if not cross_validate:
+        l = LogSourceMaker(logfolder="/root/MatchBrain/logs/")
+        b = l.get_block(shift = shift)
+        bws = b.sources[0]
+        phs = b.sources[1]
+        prep = Preprocessing(bws)
+        print("prep output dim: "+str(prep.output_dim))
+        AutoTransformer.model_dir = "/root/MatchBrain/models/"
+        ae = AutoTransformer(prep.output_dim, prep, phs, epochs=epochs, num_sizes=5)
+        print("have ae")
     ### DATA ###
     if generate_data:
         update_status(ae, "current", "preprocessing data")
@@ -256,4 +258,48 @@ if __name__ == '__main__':
             print(counts)
             info.update({key: [eva,counts]})
         ae.update_catalog(ae.model_name, info)
+    if cross_validate:
+        l = LogSourceMaker(clean_seconds=5, logfolder="/root/MatchBrain/models/", cross_val=True)
+        for _ in xrange(len(l.all_dict)+1):
+            b = l.get_block(shift = 1)
+            bws = b.sources[0]
+            phs = b.sources[1]
+            prep = Preprocessing(bws)
+            print("prep output dim: "+str(prep.output_dim))
+            AutoTransformer.model_dir = "/root/MatchBrain/models/"
+            ae = AutoTransformer(prep.output_dim, prep, phs, epochs=50, num_sizes=5)
+            print("have ae")
+            update_status(ae, "current", "preprocessing data")
+            b.start()
+            while b.started and data_mins>0:
+                time.sleep(60)
+                print(ae.batched)
+                data_mins -= 1
+            if b.started:
+                b.stop()
+            print("stopped")
+            ae.cap_data()
+            update_status(ae, "current", "saving data")
+            ae.save_data()
+            print("data saved")
+            ae.finetune(name="x-"+l.val_dict.keys()[0]+"-val", train_encdecs=True, test_data=l.val_dict.values()[0])
+            info = {}
+            for key in ae.previous_data:
+                print(key)
+                arr = np.array(ae.previous_data[key])
+                phl = len(phase_names)
+                eye = np.identity(phl)
+                tc = to_categorical
+                eva = ae.model.evaluate(arr,
+                                        tc(map(lambda n: phase_names.index(n)
+                                               ,list(repeat(key, len(arr))))
+                                           ,phl)
+                                        ,show_accuracy=True)
+                counts = np.sum(map(lambda p: eye[np.argmax(p)], ae.model.predict(arr)), axis=0)
+                print(eva)
+                print(counts)
+                info.update({key: [eva,counts]})
+            ae.update_catalog(ae.model_name, info)
+            l.cross_val_next()
+
     #update_status(ae, "done", True)

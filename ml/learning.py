@@ -310,7 +310,7 @@ class AutoTransformer(Transformer):
 
     # TODO make this run in a separate thread? See to it that all incoming signals are handled correctly during
     # TODO make this accept validation data from elsewhere or at least have x-validation option
-    def finetune(self, name = None, train_encdecs = True, early_stopping = None):
+    def finetune(self, name = None, train_encdecs = True, early_stopping = None, test_data = None):
         """
         :param train_encdecs: If true, pretraining is done now, if not the latest pretrained layers are loaded
         :param early_stopping: Should be None or a dict with keys "monitor", "patience", and possibly "verbose"
@@ -326,21 +326,29 @@ class AutoTransformer(Transformer):
         if not self.model:
             self.new_model()
         measurements, phases = zip(*[(m,p) for p in self.previous_data for m in self.previous_data[p]])
-        X_train, X_test, y_train, y_test = train_test_split(
+        X_train, X_val, y_train, y_val = train_test_split(
             map(np.array, measurements),
             np_utils.to_categorical(map(
                 lambda n: phase_names.index(n) if n else phase_names.index("DISTRACT"),
                 phases)),
             test_size=0.1
         )
+        if not test_data:
+            X_test, y_test = np.array(X_val), y_val
+        else:
+            ph_t, m_t = zip(*test_data)
+            X_test = np.array(map(lambda m: np.divide(m,self.maxes), m_t))
+            y_test = np_utils.to_categorical(map(
+                lambda n: phase_names.index(n) if n else phase_names.index("DISTRACT"),
+            ph_t))
         history = self.History()
         callbacks = [ModelCheckpoint("at-"+start_time+"-{epoch}-{val_acc:.4f}.hdf5", save_best_only=True), history]
         if early_stopping:
             callbacks.append(MyEarlyStopping(**early_stopping))
         self.model.fit(np.array(X_train), y_train, batch_size=self.batch_size, nb_epoch=self.epochs,
-                       show_accuracy=True, validation_data=(np.array(X_test), y_test),
+                       show_accuracy=True, validation_data=(X_val, y_val),
                        callbacks=callbacks)
-        score = self.model.evaluate(np.array(X_test), y_test, show_accuracy=True, verbose=0)
+        score = self.model.evaluate(X_test, y_test, show_accuracy=True, verbose=0)
         logger.info({"finetune_score": score})
         f_name = name or time_str()
         self.save_model(f_name)
