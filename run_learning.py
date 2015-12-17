@@ -63,8 +63,10 @@ shift = 1
 data_mins = 40
 generate_data = False
 pretrain_encdecs = False
-continue_encdecs = True
+continue_encdecs = False
 finetune = False
+continue_finetune = False
+evaluate_model = True
 
 def update_status(ae, key, value):
 	with open(ae.model_dir + "status.json", 'r') as f:
@@ -103,8 +105,9 @@ if __name__ == '__main__':
         ae.save_data()
         print("data saved")
     else:
-        ae.load_data()
-        ae.cap_data()
+        pass
+        #ae.load_data()
+        #ae.cap_data()
     ### PRETRAIN ###
     losscomb = lambda zoo, h: ", ".join(map(lambda (i,e): str(i)+":"+('%.4f'%e[-1][zoo]), enumerate(h)))
     if pretrain_encdecs:
@@ -164,7 +167,7 @@ if __name__ == '__main__':
         encdec_opts = {key: ae.get_from_catalog(key, "ed_best") for key in encdec_opt_strings}
         #sink = Sink([ae], lambda r: print(r) if (not r is None) else None)
         #print('have sink')
-        options = [(opt,cl,dr,gbs,gsf)
+        options = [(opt,cl,dr,gbs,gsf,l2)
                    for opt in ['adadelta']
                    for cl in ['categorical_crossentropy']
                    for dr in [0.001]
@@ -180,7 +183,7 @@ if __name__ == '__main__':
             name = "o-"+str(opt)+"-cl-"+str(cl)+"-dr-"+str(dr)+"-gbs-"+str(gbs)+"-gsf-"+str(gsf)+"-l2-"+str(l2)
             update_status(ae, "current", "training classif "+name)
             history = ae.finetune(train_encdecs=False, early_stopping={"monitor": "val_acc", "patience": 10, "verbose": 1})
-            info = {"history": history, "loss_fine": history[-1][0][0], "acc_fine": history[-1][0][1]}
+            info = {"history": history, "loss_fine": history[-1][0], "acc_fine": history[-1][1]}
             for key in ae.previous_data:
                 print(key)
                 arr = np.array(ae.previous_data[key])
@@ -197,8 +200,60 @@ if __name__ == '__main__':
                 print(counts)
                 info.update({key: [eva,counts]})
                 update_status(ae, "history", {"name": name,
-                                              "loss": history[-1][0][0],
-                                              "acc": history[-1][0][1],
+                                              "loss": history[-1][0],
+                                              "acc": history[-1][1],
                                               "date": time_str()})
             ae.update_catalog(name, info)
+    if continue_finetune:
+        ae.load_encdecs("o-adadelta-dr-0.001-gbs-0.001-gsf-2-l1-0-l2-0.001")
+        ae.load_model()#"151215-194404")
+        #print(ae.model.to_json())
+        ae.load_data()
+        ae.cap_data()
+        history = ae.finetune(train_encdecs=False)
+        name = ae.model_name
+        info = {"history": history, "loss_fine": history[-1][0], "acc_fine": history[-1][1]}
+        for key in ae.previous_data:
+            print(key)
+            arr = np.array(ae.previous_data[key])
+            phl = len(phase_names)
+            eye = np.identity(phl)
+            tc = to_categorical
+            eva = ae.model.evaluate(arr,
+                                    tc(map(lambda n: phase_names.index(n)
+                                          ,list(repeat(key, len(arr))))
+                                      ,phl)
+                                   ,show_accuracy=True)
+            counts = np.sum(map(lambda p: eye[np.argmax(p)], ae.model.predict(arr)), axis=0)
+            print(eva)
+            print(counts)
+            info.update({key: [eva,counts]})
+            update_status(ae, "history", {"name": name,
+                                          "loss": history[-1][0],
+                                          "acc": history[-1][1],
+                                          "date": time_str()})
+        ae.update_catalog(name, info)
+    if evaluate_model:
+        info = {}
+        if not (finetune or continue_finetune):
+            ae.load_model()
+            if not generate_data:
+                ae.load_data()
+                ae.cap_data()
+        for key in ae.previous_data:
+            print(key)
+            arr = np.array(ae.previous_data[key])
+            phl = len(phase_names)
+            eye = np.identity(phl)
+            tc = to_categorical
+            eva = ae.model.evaluate(arr,
+                                    tc(map(lambda n: phase_names.index(n)
+                                          ,list(repeat(key, len(arr))))
+                                      ,phl)
+                                   ,show_accuracy=True)
+            counts = np.sum(map(lambda p: eye[np.argmax(p)], ae.model.predict(arr)), axis=0)
+            print(eva)
+            print(counts)
+            info.update({key: [eva,counts]})
+        ae.update_catalog(ae.model_name, info)
     #update_status(ae, "done", True)
