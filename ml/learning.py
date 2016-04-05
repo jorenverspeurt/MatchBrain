@@ -226,9 +226,17 @@ class AutoTransformer(Transformer):
         with open(self.model_dir + self.catalog_name, 'w') as f:
             f.write(json.dumps(catalog, indent=2, sort_keys=True))
 
-    def training_transform(self, bw, ph):
+    def training_transform(self, bw, ph, online=False):
         self.tuning_transform(bw, ph)
-        # if self.batched == self.batch_size:
+        if online:
+            X_l = np.array([self.current_batch[-1]])
+            for (lay, ae) in enumerate(self.enc_decs):
+                loss = ae.train_on_batch(X_l, X_l)
+                X_l = ae.predict(X_l, batch_size=1, verbose=0)
+            return X_l
+        else:
+            return None
+        #if self.batched == self.batch_size:
         #    X_l = np.array(map(np.array, self.current_batch))
         #    for (lay, ae) in enumerate(self.enc_decs):
         #        loss = ae.train_on_batch(X_l, X_l)
@@ -321,17 +329,19 @@ class AutoTransformer(Transformer):
         X_train, X_val, y_train, y_val = train_test_split(
             map(np.array, measurements),
             np_utils.to_categorical(map(
-                lambda n: phase_names.index(n) if n else phase_names.index("DISTRACT"),
+                lambda n: phase_names.index(n) if n in phase_names else phase_names.index("DISTRACT"),
                 phases)),
             test_size=0.1
         )
         if not test_data:
             X_test, y_test = np.array(X_val), y_val
         else:
+            print(len(test_data))
+            print(test_data[0])
             ph_t, m_t = zip(*test_data)
             X_test = np.array(map(lambda m: np.divide(m,self.maxes), m_t))
             y_test = np_utils.to_categorical(map(
-                lambda n: phase_names.index(n) if n else phase_names.index("DISTRACT"),
+                lambda n: phase_names.index(n) if n in phase_names else phase_names.index("DISTRACT"),
             ph_t))
         history = self.History()
         callbacks = [ModelCheckpoint("at-"+start_time+"-{epoch}-{val_acc:.4f}.hdf5", save_best_only=True), history]
@@ -413,6 +423,8 @@ class AutoTransformer(Transformer):
 
     def load_model(self, f_name = None):
         self.model_name = f_name or self.model_name
+        if not self.get_from_catalog("layer_sizes", self.model_name):
+            raise ValueError("Wrong model name?")
         self.layer_sizes = self.get_from_catalog("layer_sizes", self.model_name)
         self.cls_opt = self.get_from_catalog("class_optimizer", self.model_name)
         self.cls_lss = self.get_from_catalog("class_loss", self.model_name)
@@ -456,6 +468,7 @@ class AutoTransformer(Transformer):
             ed.compile(loss='mse', optimizer=self.enc_opt)
 
     def cap_data(self):
+        self.previous_data = {k:self.previous_data[k] for k in phase_names}
         lengths = map(len, self.previous_data.values())
         if not all(map(lambda a: a == lengths[0], lengths)):
             smallest = min(map(len, self.previous_data.values()))

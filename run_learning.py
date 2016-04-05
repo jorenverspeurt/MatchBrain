@@ -60,7 +60,7 @@ epochs = 100
 shift = 1
 
 #SPECIFIC
-data_mins = 40
+data_mins = 30
 generate_data = False
 pretrain_encdecs = False
 continue_encdecs = False
@@ -259,7 +259,7 @@ if __name__ == '__main__':
             info.update({key: [eva,counts]})
         ae.update_catalog(ae.model_name, info)
     if cross_validate:
-        l = LogSourceMaker(clean_seconds=5, logfolder="/root/MatchBrain/models/", cross_val=True)
+        l = LogSourceMaker(clean_seconds=5, logfolder="/root/MatchBrain/logs/", cross_val=True)
         for _ in xrange(len(l.all_dict)+1):
             b = l.get_block(shift = 1)
             bws = b.sources[0]
@@ -269,20 +269,21 @@ if __name__ == '__main__':
             AutoTransformer.model_dir = "/root/MatchBrain/models/"
             ae = AutoTransformer(prep.output_dim, prep, phs, epochs=50, num_sizes=5)
             print("have ae")
-            update_status(ae, "current", "preprocessing data")
-            b.start()
-            while b.started and data_mins>0:
-                time.sleep(60)
-                print(ae.batched)
-                data_mins -= 1
-            if b.started:
-                b.stop()
-            print("stopped")
+            #update_status(ae, "current", "preprocessing data")
+            #b.start()
+            #while b.started and data_mins>0:
+            #    time.sleep(60)
+            #    print(ae.batched)
+            #    data_mins -= 1
+            #if b.started:
+            #    b.stop()
+            #print("stopped")
+            ae.load_data()
             ae.cap_data()
-            update_status(ae, "current", "saving data")
-            ae.save_data()
-            print("data saved")
-            ae.finetune(name="x-"+l.val_dict.keys()[0]+"-val", train_encdecs=True, test_data=l.val_dict.values()[0])
+            #update_status(ae, "current", "saving data")
+            #ae.save_data()
+            #print("data saved")
+            ae.finetune(name="x-"+l.val_dict.keys()[0]+"-val", train_encdecs=True, test_data=l.rpp_val)
             info = {}
             for key in ae.previous_data:
                 print(key)

@@ -8,10 +8,10 @@ from itertools import repeat, takewhile, groupby
 import numpy as np
 import gzip, cPickle
 
-from core.TrainView import phase_names
 from signals.primitive import GenSource, SignalBlock, Transformer
 from processing import *
 
+phase_names = ['DISTRACT', 'RELAXOPEN', 'RELAXCLOSED', 'CASUAL', 'INTENSE']
 
 def interp_vals(val1, val2, index, total):
     return val1 + ( (val2-val1) * (index/total) )
@@ -83,11 +83,13 @@ class LogSourceMaker(object):
         self.seen_val_names = []
         if cross_val:
             def tname_for(fname):
-                takewhile(lambda c: c!='2', fname)
-            #tester_names = sorted(list(set(map(tname_for, all_dict.keys))))
-            all_dict = reduce(dict.update,
-                              {f: all_dict[max(g)]
-                               for f,g in groupby(sorted(all_dict.iterkeys()), tname_for)}, {})
+                just_f = fname.split('/')[-1]
+                return just_f.split('2015')[0]
+            #tester_names = sorted(list(set(map(tname_for, all_dict.iterkeys()))))
+            #print(tester_names)
+            #print({f: max(g) for f,g in groupby(sorted(all_dict.iterkeys()), tname_for)})
+            all_dict = {f: all_dict[max(g)]
+                        for f,g in groupby(sorted(all_dict.iterkeys()), tname_for)}
             val_name = random.choice(all_dict.keys())
             self.seen_val_names.append(val_name)
             self.val_dict = {val_name: all_dict[val_name]}
