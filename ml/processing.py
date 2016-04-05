@@ -5,6 +5,7 @@ from functools import reduce
 
 import numpy as np
 import pywt
+
 #
 from signals.primitive import Transformer
 
@@ -47,8 +48,8 @@ def fourier_trans(l, f_sample = 512, freq_low = 4, freq_high = 50):
     if not (l is None or l == []):
         #TODO binning? Must be based on experimental results! (?)
         ft = np.fft.rfft(l)
-        i_s = math.floor(freq_low*f_sample/len(l))
-        i_e = math.ceil(freq_high*f_sample/len(l))
+        i_s = int(math.floor(freq_low * f_sample / len(l)))
+        i_e = int(math.ceil(freq_high * f_sample / len(l)))
         return np.absolute(ft[i_s:i_e])
     else:
         return l

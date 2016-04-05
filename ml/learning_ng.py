@@ -105,11 +105,11 @@ class PretrainedClassifier(object):
                 , encdec_optimizer = 'rmsprop'
                 , class_optimizer = 'adadelta'
                 , class_loss = 'categorical_crossentropy'
-                , drop_rate = 0
-                , gauss_base_sigma = 0
-                , gauss_sigma_factor = 1
-                , l1 = 0
-                , l2 = 0 ):
+                , drop_rate = 0.0
+                , gauss_base_sigma = 0.0
+                , gauss_sigma_factor = 1.0
+                , l1 = 0.0
+                , l2 = 0.0 ):
         input_dim = len(safe_head(data))
         output_dim = len(set(labels))
         upper = int(log(input_dim)/log(2))
@@ -213,7 +213,11 @@ class PretrainedClassifier(object):
             self.save_encdecs('best')
         return cum_history
 
-    def finetune(self, name = None, encdecs_name = "", early_stopping = None, test_data = None):
+    def finetune(self,
+                 name = None,
+                 encdecs_name = "",
+                 early_stopping = {"monitor": "val_acc", "patience": 10, "verbose": 1},
+                 test_data = None):
         """
         :param train_encdecs: If true, pretraining is done now, if not the latest pretrained layers are loaded
         :param early_stopping: Should be None or a dict with keys "monitor", "patience", and possibly "verbose"
@@ -225,7 +229,8 @@ class PretrainedClassifier(object):
         if not self.model:
             self.new_model()
         X_train, X_val, y_train, y_val = train_test_split(
-            map(np.array, self.data),
+            # map(np.array, self.data), # shouldn't be necessary
+            self.data,
             np_utils.to_categorical(map(
                 lambda n: phase_names.index(n) if n else phase_names.index("DISTRACT"),
                 self.labels)),
@@ -244,7 +249,7 @@ class PretrainedClassifier(object):
         if early_stopping:
             callbacks.append(MyEarlyStopping(**early_stopping))
         self.model.fit(np.array(X_train), y_train, batch_size=self.batch_size, nb_epoch=self.epochs,
-                       show_accuracy=True, validation_data=(X_val, y_val),
+                       show_accuracy=True, validation_data=(np.array(X_val), y_val),
                        callbacks=callbacks)
         score = self.model.evaluate(X_test, y_test, show_accuracy=True, verbose=0)
         logger.info({"finetune_score": score})
@@ -287,18 +292,18 @@ class PretrainedClassifier(object):
             regularizer = None
         if self.enc_decs and not fresh:
             for (i,enc) in enumerate(ae.layers[0].encoder for ae in self.enc_decs):
-                if self.drop_rate != 0:
-                    self.model.add(drop_cl(self.drop_rate, input_shape=(self.layer_sizes[i],)))
                 if self.sigma_base != 0:
-                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i)))
+                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i])))
                 self.model.add(enc)
+                if self.drop_rate != 0:
+                    self.model.add(drop_cl(self.drop_rate))
         else:
             for (i,(n_in, n_out)) in enumerate(zip(self.layer_sizes[:-1], self.layer_sizes[1:])):
+                if self.sigma_base != 0:
+                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i])))
+                self.model.add(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid', W_regularizer=regularizer))
                 if self.drop_rate != 0:
                     self.model.add(drop_cl(self.drop_rate, input_shape=(n_in,)))
-                if self.sigma_base != 0:
-                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i)))
-                self.model.add(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid', W_regularizer=regularizer))
                 #TODO ?
         self.model.add(core.Dense(input_dim=self.layer_sizes[-1]
                                   ,output_dim=len(phase_names)
@@ -398,7 +403,7 @@ if __name__ == '__main__':
         normalized_data = cPickle.load(f)
     unsplit = [(e['phase'],e['raw']) for name in normalized_data.iterkeys() for e in normalized_data[name]]
     phases, data = zip(*unsplit)
-    pc = PretrainedClassifier(data, phases, 50, 300, model_name = 'test')
+    pc = PretrainedClassifier(data, phases, 50, 300, model_name = 'test', gauss_base_sigma=0.1, l2=0.001)
     print(pc.layer_sizes)
     pc.new_encdecs(True,True,True)
     pc.pretrain()
