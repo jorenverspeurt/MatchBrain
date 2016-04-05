@@ -9,7 +9,7 @@ import pywt
 from signals.primitive import Transformer
 
 
-def wavelet_trans(l, num_coeffs = 50):
+def wavelet_trans(l):
     #TODO binning per decomposition level?
     #TODO explain why db4
     if not (l is None or l == []):

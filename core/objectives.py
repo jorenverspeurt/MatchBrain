@@ -8,6 +8,26 @@ normal_tiles = [s.replace('../resources/', '') for s in glob('../resources/n-*.p
 special_tiles = [s.replace('../resources/', '') for s in glob('../resources/s-*.png')]
 other_tiles = [s.replace('../resources/', '') for s in glob('../resources/o-*.png')]
 
+def insert_other(drops):
+    index = randint(0, len(drops)-1)
+    return [drop if i!=index else choice(other_tiles) for (i,drop) in enumerate(drops)]
+
+def remove_others(grid):
+    return [row
+            if i!=len(grid)-1
+            else [choice(normal_tiles)
+                  if col_e in other_tiles
+                  else col_e
+                  for col_e in grid[-1]]
+            for (i,row) in enumerate(grid)]
+
+def insert_special(grid):
+    row_i = randint(0, len(grid)-1)
+    col_i = randint(0, len(grid[row_i]))
+    return [row if i!=row_i else [col_e if j!=col_i else choice(special_tiles)
+                                  for (j,col_e) in enumerate(grid[row_i])]
+            for (i,row) in enumerate(grid)]
+
 class ObjectiveType(object):
     all_types = {}
     by_cat = {}
@@ -49,7 +69,7 @@ class ObjectiveType(object):
     def display(self):
         return None
 
-class ThreeKinds(ObjectiveType):
+class ThreeKindsO(ObjectiveType):
     def __init__(self):
         ObjectiveType.__init__(self, '3kinds', 'action', None, None, 45, None)
 
@@ -61,9 +81,23 @@ class ThreeKinds(ObjectiveType):
         counts.append(randint(min, max))
         counts.append(randint(min, max))
         counts.append(total-counts[0]-counts[1])
-        value = {tile: (count, self.parent.tile_sprite(tile, (0,0)))
-                 for (tile, count) in zip(sample(normal_tiles, 3), kinds_counts_diff(difficulty)) }
+        value = {tile: (count, GameModel.tile_sprite(tile, (0,0)))
+                 for (tile, count) in zip(sample(normal_tiles, 3), counts)}
+        return value
 
+class ScoreO(ObjectiveType):
+    def __init__(self):
+        ObjectiveType.__init__(self, 'score', 'action', None, None, 45, None)
+
+    def _get_value(self, difficulty):
+        return {"score": 20*difficulty}
+
+class DropO(ObjectiveType):
+    def __init__(self):
+        ObjectiveType.__init__(self, 'drop', 'puzzle',
+                               GameAction(with_drops=insert_other),
+                               GameAction(with_board=remove_others),
+                               None, 7)
 
 class OEvent(object):
     def __init__(self, affects, function = lambda x: x):
@@ -137,26 +171,6 @@ class Objective(object):
         else:
             return False
 
-def insert_other(drops):
-    index = randint(0, len(drops)-1)
-    return [drop if i!=index else choice(other_tiles) for (i,drop) in enumerate(drops)]
-
-def remove_others(grid):
-    return [row
-            if i!=len(grid)-1
-            else [choice(normal_tiles)
-                  if col_e in other_tiles
-                  else col_e
-                  for col_e in grid[-1]]
-            for (i,row) in enumerate(grid)]
-
-def insert_special(grid):
-    row_i = randint(0, len(grid)-1)
-    col_i = randint(0, len(grid[row_i]))
-    return [row if i!=row_i else [col_e if j!=col_i else choice(special_tiles)
-                                  for (j,col_e) in enumerate(grid[row_i])]
-            for (i,row) in enumerate(grid)]
-
 class ObjectiveMaker(object):
     #Modes
     STATIC = 'static'
@@ -220,7 +234,7 @@ class ObjectiveMaker(object):
         # TODO load the above functions from somewhere else
         if type == '3kinds':
             # variable count, fixed time
-            value = {tile: (count, self.parent.tile_sprite(tile, (0,0)))
+            value = {tile: (count, tile_sprite(tile, (0,0)))
                      for (tile, count) in zip(sample(normal_tiles, 3), kinds_counts_diff(difficulty)) }
         elif type == 'score_fixtime':
             # variable score, fixed time

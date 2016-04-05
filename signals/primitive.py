@@ -6,6 +6,7 @@ import string
 import sys
 import time
 from threading import Thread
+import numpy as np
 
 __author__ = 'joren'
 
@@ -67,7 +68,7 @@ class Source(Debuggable):
         if self.shouldPull():
             old_val = self.value
             self.value = self.upstream()
-            if self.value != old_val:
+            if not self.value is old_val: #(self.value != old_val if not isinstance(self.value, np.ndarray) else self.value.not_equal(old_val).any()):
                 for sub in self.subscribers:
                     sub.push(self,self.value)
 

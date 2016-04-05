@@ -1,5 +1,3 @@
-__all__ = ['GameModel', 'ROWS_COUNT', 'COLS_COUNT']
-
 import logging
 from math import log
 
@@ -21,6 +19,18 @@ IMPLODING_TILES = 'imploding_tiles'
 DROPPING_TILES = 'dropping_tiles'
 NEXT_LEVEL = 'next_level'
 GAME_OVER = 'game_over'
+
+def tile_sprite(tile_type, pos):
+    """
+    :param tile_type: numeric id, must be in the range of available images
+    :param pos: sprite position
+    :return: sprite built form tile_type
+    """
+    sprite = Sprite(tile_type)
+    sprite.position = pos
+    sprite.scale = 1
+    sprite.name = tile_type #MONKEY!
+    return sprite
 
 class GameModel(pyglet.event.EventDispatcher):
     available_tiles = [s.replace('../resources/', '') for s in glob('../resources/n-*.png')]
@@ -108,7 +118,7 @@ class GameModel(pyglet.event.EventDispatcher):
             objectives = []
             while len(objectives) < 3:
                 tile_type = choice(self.available_tiles)
-                sprite = self.tile_sprite(tile_type, (0, 0))
+                sprite = tile_sprite(tile_type, (0, 0))
                 max = 100 if status.level == 0 else round(5+10*log(status.level))
                 count = randint(1, max)
                 if tile_type not in [x[0] for x in objectives]:
@@ -152,7 +162,7 @@ class GameModel(pyglet.event.EventDispatcher):
         # Build the sprites based on the assigned tile type
         for key, value in tile_grid.iteritems():
             tile_type, sprite = value
-            sprite = self.tile_sprite(tile_type, self.to_display(key))
+            sprite = tile_sprite(tile_type, self.to_display(key))
             tile_grid[key] = tile_type, sprite
             self.view.add(sprite)
 
@@ -215,7 +225,7 @@ class GameModel(pyglet.event.EventDispatcher):
                     tile_grid[x, y - gap_count] = tile_type, sprite
             for n in range(gap_count):  # Drop as much tiles as gaps counted
                 tile_type = choice(self.available_tiles)
-                sprite = self.tile_sprite(tile_type, self.to_display((x, y + n + 1)))
+                sprite = tile_sprite(tile_type, self.to_display((x, y + n + 1)))
                 tile_grid[x, y - gap_count + n + 1] = tile_type, sprite
                 sprite.do(
                     MoveTo(self.to_display((x, y - gap_count + n + 1)), 0.3 * gap_count) + CallFuncS(
@@ -248,18 +258,6 @@ class GameModel(pyglet.event.EventDispatcher):
 
     def set_view( self, view):
         self.view = view
-
-    def tile_sprite(self, tile_type, pos):
-        """
-        :param tile_type: numeric id, must be in the range of available images
-        :param pos: sprite position
-        :return: sprite built form tile_type
-        """
-        sprite = Sprite(tile_type)
-        sprite.position = pos
-        sprite.scale = 1
-        sprite.name = tile_type #MONKEY!
-        return sprite
 
     def on_tiles_swap_completed(self):
         self.game_state = DROPPING_TILES
@@ -372,6 +370,7 @@ class GameModel(pyglet.event.EventDispatcher):
             for x in range(COLS_COUNT):
                 line_str += str(self.tile_grid[x, y][0])
             print line_str
+
 
 GameModel.register_event_type('on_update_objectives')
 GameModel.register_event_type('on_update_time')

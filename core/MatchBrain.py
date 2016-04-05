@@ -54,6 +54,14 @@ if __name__ == '__main__':
             dataLogger.addHandler(jsonHandler)
             bwSource = BrainWaveSource()
         else:
+            class LogMock(object):
+                def debug(self, string):
+                    pass
+                def info(self, string):
+                    print(string)
+                def log(self, string, level):
+                    print(string)
+            dataLogger = LogMock()
             bwSource = Source(lambda: [random.random()*4096-2048 for i in xrange(512)])
         prep = Preprocessing(bwSource)
         ae = AutoTransformer(prep.output_dim, prep, ph_source, batch_size=1, num_sizes=5, epochs=15, model_name=nickname)
@@ -79,5 +87,5 @@ if __name__ == '__main__':
     # Start the game!
     pyglet.resource.path = ['../resources']
     pyglet.resource.reindex()
-    game(scene=setup(test, ph_source, [] if demo else [ae.finetune, lambda: ae.change_mode(ae.USING)]))
+    game(scene=setup(test, ph_source, []))# if demo else [ae.finetune, lambda: ae.change_mode(ae.USING)]))
     cleanup()

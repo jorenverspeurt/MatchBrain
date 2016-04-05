@@ -127,21 +127,23 @@ class AutoTransformer(Transformer):
             self.batch_losses = []
             self.batch_accs = []
 
-        def on_train_begin(self, logs={}):
+        def on_train_begin(self, logs=None):
             self.losses = []
 
-        def on_batch_end(self, batch, logs={}):
-            self.batch_losses.append(logs.get('loss'))
-            self.batch_accs.append(logs.get('acc'))
+        def on_batch_end(self, batch, logs=None):
+            l = logs or {}
+            self.batch_losses.append(l.get('loss'))
+            self.batch_accs.append(l.get('acc'))
 
-        def on_epoch_end(self, epoch, logs={}):
+        def on_epoch_end(self, epoch, logs=None):
+            l = logs or {}
             epoch_loss = sum(self.batch_losses)/len(self.batch_losses)
             epoch_acc = sum(self.batch_accs)/len(self.batch_accs)
             if self.val:
                 self.losses.append(((epoch_loss
                                     ,epoch_acc)
-                                   ,(logs.get('val_loss')
-                                    ,logs.get('val_acc'))))
+                                   ,(l.get('val_loss')
+                                    ,l.get('val_acc'))))
             else:
                 self.losses.append((epoch_loss, epoch_acc))
             self.batch_losses = []
@@ -226,13 +228,7 @@ class AutoTransformer(Transformer):
 
     def training_transform(self, bw, ph):
         self.tuning_transform(bw, ph)
-        X_l = np.array([self.current_batch[-1]])
-        for (lay, ae) in enumerate(self.enc_decs):
-            loss = ae.train_on_batch(X_l, X_l)
-            print(loss)
-            X_l = ae.predict(X_l, batch_size=1, verbose=0)
-        return X_l
-        #if self.batched == self.batch_size:
+        # if self.batched == self.batch_size:
         #    X_l = np.array(map(np.array, self.current_batch))
         #    for (lay, ae) in enumerate(self.enc_decs):
         #        loss = ae.train_on_batch(X_l, X_l)
@@ -240,21 +236,17 @@ class AutoTransformer(Transformer):
         #        X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
         #    self.batched = 0
         #    return X_l
-        #else:
-        #    # Is this necessary or even useful?
-        #    x_l = np.array([bw])
-        #    for ae in self.enc_decs:
-        #        x_l = ae.predict(x_l, batch_size=1, verbose=0)
-        #    return x_l
+        # else:
+        #     return None
 
     def tuning_transform(self, bw, ph):
         self.current_phase = ph
         #self.maxes = np.maximum(self.maxes, np.abs(bw))
-        if (not bw is None) and len(bw)>0:
-            scaled = np.divide(bw, self.maxes)
-            self.current_batch = self.current_batch[1:]+[scaled]
+        if ph and (not bw is None) and len(bw)>0:
+            #scaled = np.divide(bw, self.maxes)
+            self.current_batch = self.current_batch[1:]+[bw]
             self.batched += 1
-            self.previous_data.setdefault(self.current_phase, []).append(scaled)
+            self.previous_data.setdefault(self.current_phase, []).append(bw)
         return None
 
     def using_transform(self, bw):
@@ -511,66 +503,4 @@ class AutoTransformer(Transformer):
         return info
 
 
-
 # TODO write tests for AutoTransformer
-if __name__ == '__main__':
-    ### CONFIG ###
-    shift = 4
-    label_normalization = [0.82967276, 1.69463687, 1.74141838, 0.3860981,  0.34817388]
-    #label_normalization = [0.47643503, 0.97313597, 1.0,        0.22171473, 0.19993695]
-    #label_normalization = [1.0, 2.0, 2.0, 0.0, 0.0]
-    def biased_cce(y_true, y_pred):
-        return K.mean(K.categorical_crossentropy(y_pred, label_normalization * y_true), axis=-1)
-    nest = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
-    ae_conf = dict(epochs=120
-                  ,batch_size=60
-                  ,drop_rate=0
-                  ,gauss_base_sigma=0.0
-                  ,gauss_sigma_factor=2
-                  ,class_optimizer='adadelta'
-                  ,class_loss=biased_cce)
-    generate_data = False
-    data_mins = 35
-    finetune = True
-    ### RUN ###
-    l = LogSourceMaker()
-    b = l.get_block(shift = shift)
-    bws = b.sources[0]
-    phs = b.sources[1]
-    prep = Preprocessing(bws)
-    logger.info("prep output dim: "+str(prep.output_dim))
-    ae = AutoTransformer(prep.output_dim, prep, phs, epochs=120, drop_rate=0, class_optimizer='adadelta', class_loss=biased_cce)
-    print('have ae')
-    #sink = Sink([ae], lambda r: print(r) if (not r is None) else None)
-    #print('have sink')
-    if generate_data:
-        t = data_mins*4
-        b.start()
-        while b.started and t>0:
-            time.sleep(15)
-            print(ae.batched)
-            t -= 1
-        if b.started:
-            b.stop()
-        print('stopped')
-        #ae.save_data()
-    else:
-        ae.load_data()
-    if finetune:
-        history = ae.finetune(train_encdecs=False)
-        print('finetuned')
-    else:
-        ae.load_model()
-    for key in ae.previous_data:
-        print(key)
-        arr = np.array(ae.previous_data[key])
-        phl = len(phase_names)
-        eye = np.identity(phl)
-        eval= ae.model.evaluate(arr, np_utils.to_categorical(map(lambda n: phase_names.index(n)
-                                                                ,list(repeat(key, len(arr))))
-                                                            ,phl)
-                               ,show_accuracy=True)
-        counts = np.sum(map(lambda p: eye[np.argmax(p)], ae.model.predict(arr)), axis=0)
-        print(eval)
-        print(counts)
-

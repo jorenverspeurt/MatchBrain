@@ -5,9 +5,12 @@ import json
 import random
 from datetime import datetime, timedelta
 from itertools import repeat, takewhile, groupby
+import numpy as np
+import gzip, cPickle
 
 from core.TrainView import phase_names
 from signals.primitive import GenSource, SignalBlock, Transformer
+from processing import *
 
 
 def interp_vals(val1, val2, index, total):
@@ -157,4 +160,197 @@ class LogSourceMaker(object):
         #result.sinks.append(Sink([self.bw_source, self.ph_source], lambda x: print(x)))
         return block
 
+class NormSourceMaker(object):
+    def __init__(self, datafolder = None, phases = None, cross_val = False):
+        self.data = None
+        if datafolder:
+            with gzip.open(datafolder+"normalized.pkl.gz",'rb') as f:
+                self.data = cPickle.load(f)
+        else:
+            paths = glob.glob("~/PycharmProjects/MatchBrain/ml/normalized.pkl.gz")
+            if len(paths) > 0:
+                with gzip.open(paths[0]) as f:
+                    self.data = cPickle.load(f)
+        if not self.data:
+            return
+        self.phases = phases or phase_names
+        self.cross_val_keys = list(self.data.keys())
+        self.cross_val_index = 0 if cross_val else None
+
+    def cross_val_next(self):
+        self.cross_val_index = (self.cross_val_index + 1) % len(self.cross_val_keys)
+
+    def get_block(self):
+        self.source = GenSource(e
+                                for i in xrange(len(self.cross_val_keys))
+                                if not i == self.cross_val_index
+                                for e in self.data[self.cross_val_keys[i]])
+        self.ph_source = Transformer([self.source], {self.source.getName(): 'd'}, lambda d: d['phase'])
+        self.bw_source = Transformer([self.source], {self.source.getName(): 'd'}, lambda d: d['raw'])
+        block = SignalBlock(
+            [self.source],
+            [self.bw_source, self.ph_source]
+        )
+        self.source.callback = block.stop
+        return block
+
+
+if __name__ == '__main__':
+    """
+    Process all current logs into a single file
+    Keep only needed data, perform preprocessing transforms
+    Compute necessary statistics
+    """
+    drop_seconds = 4
+    shift = 4 # TODO: actually shift...
+    ###
+    # type DEntry = { "brainwave": { "eSense": {"meditation": int, "attention": int}
+    #                                          , "raw": [int]
+    #                                          , "meta": {"blink": bool, "noise": int, "contact": bool}
+    #                                          , "bands": { "lowGamma": int
+    #                                                     , "highAlpha": int
+    #                                                     , "highGamma": int
+    #                                                     , "lowAlpha": int
+    #                                                     , "delta": int
+    #                                                     , "theta": int
+    #                                                     , "lowBeta": int
+    #                                                     , "highBeta": int}}}
+    #             | { "train": {"phase": phase} } where phase in Phases
+    #             | { "game": gstate or gobjective or gscore}
+    #               where gstate = {"state": state} where state in GameModel.STATES
+    #                     gobjectives = {"objective": {"duration": int, obj: {...}, "type": obj}} where obj in Objectives
+    #                     gscore = {"score": int}
+    #             | { "event": mouse or key }
+    #               where mouse = {"mouse": drag or press}
+    #                             where drag = {"drag": {"y": int, "x": int, "buttons": int, "dx": int, "dy": int}}}
+    #                                   press = {"press": {"y": int, "x": int, "buttons": int}}
+    #                     keyboard = {"key": symbol} where symbol = string
+    # type Nick = {"nick": str, "version": float, "startTime": str}
+    # all_logs :: {filename: [Nick or {"data": DEntry, ascTime: str}]}
+    all_logs = loadall()
+    np.set_printoptions(precision=3, suppress=True)
+
+    # handle_data_entry :: ({"data": DEntry} -> bw or tr or None) or ({ other } -> None)
+    #                      where bw = { "type": "brainwave", "raw": [int], "eSense": ...}
+    #                            tr = { "type": "phase", "phase": phase }
+    def handle_data_entry(de):
+        if "data" in de:
+            data = de["data"]
+            if "brainwave" in data \
+                    and sum(data["brainwave"]["eSense"].itervalues()) != 0\
+                    and data["brainwave"]["meta"]["contact"]:
+                bw = data["brainwave"]
+                return { "type": "brainwave"
+                       , "raw": bw["raw"]
+                       , "eSense": bw["eSense"]
+                       , "bands": bw["bands"]}
+            elif "train" in data:
+                return { "type": "phase"
+                       , "phase" : data["train"]["phase"] }
+            else:
+                return None # Include others as needed
+        else:
+            return None
+
+    # (filter(None, ...) removes Nones and other falsies)
+    result = { fname: filter(None, map(handle_data_entry, fc))
+               for (fname, fc) in all_logs.iteritems() }
+    # result: { filename: [bw or tr] }
+
+    # change_drop :: (str, int, [bw]) -> (bw or tr) -> (str, int, [bw])
+    def change_drop((cur_phase, count, data_acc), new_data):
+        if count > 0:
+            return (cur_phase, count - 1, data_acc)
+        elif new_data["type"] == "phase":
+            if new_data["phase"] == "NEWGAME":
+                return ("NEWGAME", 1e10, data_acc) # Ignore newgame data for now
+            else:
+                return (new_data["phase"], drop_seconds, data_acc)
+        elif new_data["type"] == "brainwave":
+            # Ugh, imperative rubbish, but hey, it saves some memory I guess
+            new_data["phase"] = cur_phase
+            data_acc.append(new_data)
+            return (cur_phase, count, data_acc)
+        else:
+            # Let's find out which case I'm not covering here...
+            # Should be none for now
+            print(new_data)
+
+    # Go over the data, dropping what needs to be dropped
+    # result :: { filename: [bw] }
+    result = { fname: reduce(change_drop, fc, (phase_names[0], drop_seconds, []))[2]
+               for (fname, fc) in result.iteritems() }
+
+    # A convoluted way of mapping fix_length over just result['raw'] and leaving the rest untouched
+    # Replace raw data by preprocess'ed version
+    # result :: { filename: [ {"type": "brainwave", "raw": [array], eSense: {...}, bands: {...}}
+    result = { fname: map(lambda r: dict(r, **{ 'raw': merge(*map(lambda f: f(fix_length(r['raw'], 512))
+                                                                 ,[wavelet_trans, fourier_trans, extremes])) })
+                         ,fc)
+               for (fname, fc) in result.iteritems() }
+
+    # Needed stats for normalization: mean and standard deviation
+    # statd :: array -> {"mean": array, "std": array, 'n': int}
+    statd = lambda arr: {
+        'mean': np.mean(arr, axis = 0),
+        'std': np.std(arr, axis = 0),
+        'n': len(arr)
+    }
+    # A way to get the values out of a dictionary sorted by their key name alphabetically (so it's deterministic)
+    # detvalues :: dict -> list
+    detvalues = lambda d: [d[k] for k in sorted(d.iterkeys())]
+    # Ways of coercing collections of integer brainwave records into lists
+    nfs = [('raw', list), ('bands', detvalues), ('eSense', detvalues)]
+
+    # getstats :: {"raw" or "bands" or "eSense" : ... } -> [("raw", ...->list) or ("bands", ...) or ...]
+    # -> {"raw" or ... : {"mean": array, "std": array, "n": int}}
+    def getstats(res, l_cat_f):
+        return { cat: statd([f(e[cat])
+                             for (fname, fc) in res.iteritems()
+                             for e in fc])
+                 for (cat, f) in l_cat_f }
+
+    allstats = getstats(result, nfs)
+    # Group sessions per player
+    # Keep both the original preproc data and averages in the new result
+    pname_for = lambda f: ''.join(takewhile(lambda c: c!='2', f)).split('/')[-1]
+    pnames = { pname_for(fname) for fname in result.iterkeys() }
+    perplayer = { pname: sum(((fc if isinstance(fc,list) else [fc])
+                             for (fname, fc) in result.iteritems()
+                             if pname_for(fname) == pname), [])
+                  for pname in pnames }
+    perplayer = { pname: dict({ 'stats': getstats({ pname: pc }, nfs)}
+                             ,**{ fname: { 'data': fc
+                                         , 'stats': getstats({ fname: fc }, nfs) }
+                                  for (fname, fc) in result.iteritems()
+                                  if pname_for(fname) == pname})
+                  for (pname, pc) in perplayer.iteritems() }
+    # result :: { 'stats': { ... }
+    #           , 'players': { pname1: { 'stats': { 'raw': { ... }, ... }
+    #                                  , f_p1: { 'stats': { ... }, 'data': [...] }
+    #                        , ... }
+    #           }
+    result = { 'stats': allstats, 'players': perplayer }
+    with gzip.open('unscaled.pkl.gz','wb') as f:
+        cPickle.dump(result, f, 2)
+    def dict_without(dic, keys):
+        return { k: v if not isinstance(v, dict) else dict_without(v, keys) for (k, v) in dic.iteritems() if not k in keys }
+    def normalized_by(scaled, scaling):
+        def dict_aware_norm(value, mean, std):
+            if isinstance(value, dict):
+                return { k: (v-mean)/std for (k,v) in value.iteritems() }
+            else:
+                return (value-mean)/std
+
+        return [ { k: dict_aware_norm(v, scaling[k]['mean'], scaling[k]['std']) if k in scaling else v
+                   for (k,v) in e.iteritems()
+                   if not k == 'type' } #Useless to keep this, it's all 'brainwave' at this point
+                 for e in scaled ]
+
+    scaled = { pname: normalized_by(fe['data'], result['stats'])
+               for (pname, pe) in result['players'].iteritems()
+               for (fname, fe) in pe.iteritems()
+               if fname != 'stats' }
+    with gzip.open('normalized.pkl.gz','wb') as f:
+        cPickle.dump(scaled, f, 2)
 
