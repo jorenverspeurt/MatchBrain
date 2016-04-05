@@ -293,14 +293,14 @@ class PretrainedClassifier(object):
         if self.enc_decs and not fresh:
             for (i,enc) in enumerate(ae.layers[0].encoder for ae in self.enc_decs):
                 if self.sigma_base != 0:
-                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i])))
+                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i], )))
                 self.model.add(enc)
                 if self.drop_rate != 0:
                     self.model.add(drop_cl(self.drop_rate))
         else:
             for (i,(n_in, n_out)) in enumerate(zip(self.layer_sizes[:-1], self.layer_sizes[1:])):
                 if self.sigma_base != 0:
-                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i])))
+                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i], )))
                 self.model.add(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid', W_regularizer=regularizer))
                 if self.drop_rate != 0:
                     self.model.add(drop_cl(self.drop_rate, input_shape=(n_in,)))
