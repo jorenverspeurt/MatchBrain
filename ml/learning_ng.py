@@ -1,13 +1,15 @@
 from __future__ import print_function
 
-import os, glob
+import cPickle
 import datetime as dt
+import glob
+import gzip
 import json
 import logging
+import os
 import random
-from operator import mul
 from math import log
-import cPickle, gzip
+from operator import mul
 
 import keras.layers.containers as containers
 import keras.layers.core as core
@@ -119,7 +121,7 @@ class PretrainedClassifier(object):
         self.layer_sizes = [input_dim] + [2**i for i in xrange(upper, lower, -1)]
         self.enc_decs = []
         self.model = None
-        self.model_dir = model_dir or safe_head(glob.glob(os.path.join(os.path.dirname(__file__), '..', 'models'))) or ""
+        self.model_dir = model_dir or safe_head(glob.glob(os.path.join(os.path.dirname(__file__), '..', 'models')))+"/" or ""
         self._catalog_path = os.path.join(self.model_dir, 'ng_catalog.json')
         self.batch_size = batch_size
         self.enc_opt = encdec_optimizer
@@ -359,8 +361,8 @@ class PretrainedClassifier(object):
             for key in data_by_key:
                 data_by_key[key] = random.sample(data_by_key[key], smallest)
             self.data, self.labels = zip(*[(d,l)
-                                           for (d,ls) in data_by_key.iteritems()
-                                           for l in ls])
+                                           for (l,ds) in data_by_key.iteritems()
+                                           for d in ds])
 
     def encdec_info(self):
         info = {
