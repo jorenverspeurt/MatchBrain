@@ -4,7 +4,7 @@
     <bookmark url="file://$PROJECT_DIR$/core/GameModel.py" line="331" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6904720f-433c-4696-87df-0409892a4795" name="Default" comment="Easier test setup">
+    <list default="true" id="6904720f-433c-4696-87df-0409892a4795" name="Default" comment="Moar fixies">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ml/learning_ng.py" afterPath="$PROJECT_DIR$/ml/learning_ng.py" />
     </list>
@@ -136,8 +136,8 @@
           <file leaf-file-name="learning_ng.py" pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/ml/learning_ng.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="450">
-                  <caret line="115" column="54" selection-start-line="115" selection-start-column="54" selection-end-line="115" selection-end-column="54" />
+                <state relative-caret-position="435">
+                  <caret line="114" column="24" selection-start-line="114" selection-start-column="24" selection-end-line="114" selection-end-column="24" />
                   <folding>
                     <element signature="e#0#37#0" expanded="true" />
                   </folding>
@@ -785,7 +785,14 @@
       <option name="project" value="LOCAL" />
       <updated>1459978533252</updated>
     </task>
-    <option name="localTasksCounter" value="30" />
+    <task id="LOCAL-00030" summary="Moar fixies">
+      <created>1459978937516</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1459978937516</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -826,7 +833,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="OFFER_MOVE_TO_ANOTHER_CHANGELIST_ON_PARTIAL_COMMIT" value="false" />
-    <MESSAGE value="TODO's updated" />
     <MESSAGE value="Added lots of debug logging, fixed some things, ..." />
     <MESSAGE value="Fixed bugs and crashes testers were having. Made it impossible to make matches in between levels (that was also the cause of one of the bugs)." />
     <MESSAGE value="Added part of the signal processing and machine learning stuff, very much WIP." />
@@ -851,7 +857,8 @@
     <MESSAGE value="Easier test setup" />
     <MESSAGE value="Easier test setup pt2" />
     <MESSAGE value="Fixie" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fixie" />
+    <MESSAGE value="Moar fixies" />
+    <option name="LAST_COMMIT_MESSAGE" value="Moar fixies" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XDebuggerManager">
@@ -1235,8 +1242,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/ml/learning_ng.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="450">
-          <caret line="115" column="54" selection-start-line="115" selection-start-column="54" selection-end-line="115" selection-end-column="54" />
+        <state relative-caret-position="435">
+          <caret line="114" column="24" selection-start-line="114" selection-start-column="24" selection-end-line="114" selection-end-column="24" />
           <folding>
             <element signature="e#0#37#0" expanded="true" />
           </folding>
