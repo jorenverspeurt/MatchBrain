@@ -204,8 +204,12 @@ class PretrainedClassifier(object):
             callbacks = [history]
             if early_stopping:
                 callbacks.append(MyEarlyStopping(**early_stopping))
+            ae.output_reconstruction = True
+            ae.compile(loss='mse', optimizer=self.enc_opt)
             ae.fit(X_l, X_l, batch_size=self.batch_size, nb_epoch=self.epochs // (2 ** lay),
                    show_accuracy=True, callbacks=callbacks, verbose=2)
+            ae.output_reconstruction = False
+            ae.compile(loss='mse', optimizer=self.enc_opt)
             X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
             cum_history.append(history.losses)
         quality = reduce(mul, (i[-1][1] for i in cum_history))
@@ -410,6 +414,8 @@ class PretrainedClassifier(object):
             data = data or np.array(self.data)
             info = { 'quality': 1 }
             for (i,ed) in enumerate(self.enc_decs):
+                ed.output_reconstruction = True
+                ed.compile(loss='mse', optimizer=self.enc_opt)
                 eva = ed.evaluate(data, data, show_accuracy=True)
                 info["ed-"+str(i)] = { 'loss': eva[0]
                                      , 'accuracy': eva[1] }
