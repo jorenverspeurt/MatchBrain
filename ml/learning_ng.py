@@ -464,12 +464,17 @@ class PretrainedClassifier(object):
         info.update(self._model_info)
         return info
 
-if __name__ == '__main__':
+
+def default_instance():
     with gzip.open('normalized.pkl.gz', 'rb') as f:
         normalized_data = cPickle.load(f)
     unsplit = [(e['phase'],e['raw']) for name in normalized_data.iterkeys() for e in normalized_data[name]]
     phases, data = zip(*unsplit)
-    pc = PretrainedClassifier(data, phases, 50, 100, model_name = 'test-'+time_str(), gauss_base_sigma=0.1, gauss_sigma_factor=2, l2=0.001)
+    return PretrainedClassifier(data, phases, 50, 100, model_name = 'test-'+time_str(), gauss_base_sigma=0.1, gauss_sigma_factor=2, l2=0.001)
+
+
+if __name__ == '__main__':
+    pc = default_instance()
     print(pc.layer_sizes)
     pc.new_encdecs(True,True,True)
     pc.pretrain()
