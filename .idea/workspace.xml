@@ -4,9 +4,7 @@
     <bookmark url="file://$PROJECT_DIR$/core/GameModel.py" line="331" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6904720f-433c-4696-87df-0409892a4795" name="Default" comment="Added automatic evaluation to learning_ng, ensuring it gets added to the catalog.">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+    <list default="true" id="6904720f-433c-4696-87df-0409892a4795" name="Default" comment="...">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ml/learning_ng.py" afterPath="$PROJECT_DIR$/ml/learning_ng.py" />
     </list>
@@ -138,8 +136,8 @@
           <file leaf-file-name="learning_ng.py" pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/ml/learning_ng.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="749">
-                  <caret line="465" column="85" selection-start-line="465" selection-start-column="85" selection-end-line="465" selection-end-column="85" />
+                <state relative-caret-position="765">
+                  <caret line="423" column="63" selection-start-line="423" selection-start-column="63" selection-end-line="423" selection-end-column="63" />
                   <folding>
                     <element signature="e#0#37#0" expanded="true" />
                   </folding>
@@ -753,7 +751,14 @@
       <option name="project" value="LOCAL" />
       <updated>1459962126864</updated>
     </task>
-    <option name="localTasksCounter" value="25" />
+    <task id="LOCAL-00025" summary="...">
+      <created>1459962209901</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1459962209901</updated>
+    </task>
+    <option name="localTasksCounter" value="26" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -817,9 +822,9 @@
     <MESSAGE value="Tweaks" />
     <MESSAGE value="Derp" />
     <MESSAGE value="Added automatic evaluation to learning_ng, ensuring it gets added to the catalog." />
-    <MESSAGE value="..." />
     <MESSAGE value="AutoEncoder.output_reconstruction bull****..." />
-    <option name="LAST_COMMIT_MESSAGE" value="AutoEncoder.output_reconstruction bull****..." />
+    <MESSAGE value="..." />
+    <option name="LAST_COMMIT_MESSAGE" value="..." />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XDebuggerManager">
@@ -1203,8 +1208,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/ml/learning_ng.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="749">
-          <caret line="465" column="85" selection-start-line="465" selection-start-column="85" selection-end-line="465" selection-end-column="85" />
+        <state relative-caret-position="765">
+          <caret line="423" column="63" selection-start-line="423" selection-start-column="63" selection-end-line="423" selection-end-column="63" />
           <folding>
             <element signature="e#0#37#0" expanded="true" />
           </folding>

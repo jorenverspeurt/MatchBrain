@@ -204,11 +204,11 @@ class PretrainedClassifier(object):
             callbacks = [history]
             if early_stopping:
                 callbacks.append(MyEarlyStopping(**early_stopping))
-            ae.output_reconstruction = True
+            ae.layers[0].output_reconstruction = True
             ae.compile(loss='mse', optimizer=self.enc_opt)
             ae.fit(X_l, X_l, batch_size=self.batch_size, nb_epoch=self.epochs // (2 ** lay),
                    show_accuracy=True, callbacks=callbacks, verbose=2)
-            ae.output_reconstruction = False
+            ae.layers[0].output_reconstruction = False
             ae.compile(loss='mse', optimizer=self.enc_opt)
             X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
             cum_history.append(history.losses)
@@ -293,7 +293,7 @@ class PretrainedClassifier(object):
             enc = containers.Sequential(enc_l)
             dec = containers.Sequential([core.Dense(input_dim=n_out, output_dim=n_in, activation='sigmoid')])
             ae.add(core.AutoEncoder(encoder=enc, decoder=dec,
-                                    output_reconstruction=False))
+                                    output_reconstruction=True))
             if compile:
                 ae.compile(loss='mse', optimizer=self.enc_opt)
             self.enc_decs.append(ae)
@@ -306,7 +306,9 @@ class PretrainedClassifier(object):
         else:
             regularizer = None
         if self.enc_decs and not fresh:
-            for (i,enc) in enumerate(ae.layers[0].encoder for ae in self.enc_decs):
+            # The encoder may already have a noise and/or drop layer!
+            # But we don't know what kind so replace them
+            for (i,enc) in enumerate(ae.layers[0].encoder.layers[0 if len(ae.layers[0].encoder.layers) == 0 else 1] for ae in self.enc_decs):
                 if self.sigma_base != 0:
                     self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i], )))
                 self.model.add(enc)
@@ -395,18 +397,19 @@ class PretrainedClassifier(object):
             eye = np.identity(phl)
             tc  = np_utils.to_categorical
             for key in data_by_label:
-                arr = data_by_label[key]
+                arr = np.array(data_by_label[key])
                 eva = self.model.evaluate(arr
                                          ,tc(map(lambda n: phase_names.index(n)
                                                 ,list(repeat(key, len(arr))))
                                             ,phl)
+                                         ,batch_size=self.batch_size
                                          ,show_accuracy=True)
                 counts = np.sum(map(lambda p: eye[np.argmax(p)]
-                                   ,self.model.predict(arr))
+                                   ,self.model.predict(arr, batch_size=self.batch_size))
                                ,axis=0)
-                info[key] = { 'loss': eva[0]
-                            , 'accuracy': eva[1]
-                            , 'counts': counts }
+                info[key] = { 'loss': float(eva[0])
+                            , 'accuracy': float(eva[1])
+                            , 'counts': map(int, list(counts)) }
             self._model_info.update(info)
 
     def evaluate_encdecs(self, data = None):
@@ -414,12 +417,15 @@ class PretrainedClassifier(object):
             data = data or np.array(self.data)
             info = { 'quality': 1 }
             for (i,ed) in enumerate(self.enc_decs):
-                ed.output_reconstruction = True
+                ed.layers[0].output_reconstruction = True
                 ed.compile(loss='mse', optimizer=self.enc_opt)
-                eva = ed.evaluate(data, data, show_accuracy=True)
-                info["ed-"+str(i)] = { 'loss': eva[0]
-                                     , 'accuracy': eva[1] }
-                info['quality'] *= eva[1]
+                eva = ed.evaluate(data, data, show_accuracy=True, verbose=0, batch_size= self.batch_size)
+                info["ed-"+str(i)] = { 'loss': float(eva[0])
+                                     , 'accuracy': float(eva[1]) }
+                info['quality'] *= float(eva[1])
+                ed.layers[0].output_reconstruction = False
+                ed.compile(loss='mse', optimizer=self.enc_opt)
+                data = ed.predict(data, verbose=0, batch_size=self.batch_size)
             self._encdec_info.update(info)
 
 
@@ -463,7 +469,7 @@ if __name__ == '__main__':
         normalized_data = cPickle.load(f)
     unsplit = [(e['phase'],e['raw']) for name in normalized_data.iterkeys() for e in normalized_data[name]]
     phases, data = zip(*unsplit)
-    pc = PretrainedClassifier(data, phases, 50, 20000, model_name = 'test-'+time_str(), gauss_base_sigma=0.1, gauss_sigma_factor=2, l2=0.001)
+    pc = PretrainedClassifier(data, phases, 50, 100, model_name = 'test-'+time_str(), gauss_base_sigma=0.1, gauss_sigma_factor=2, l2=0.001)
     print(pc.layer_sizes)
     pc.new_encdecs(True,True,True)
     pc.pretrain()
