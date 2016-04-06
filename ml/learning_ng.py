@@ -102,7 +102,7 @@ class PretrainedClassifier(object):
                 , model_name = ""
                 , model_dir = ""
                 , encdecs_name = ""
-                , encdec_optimizer = 'rmsprop'
+                , encdec_optimizer = 'adadelta'
                 , class_optimizer = 'adadelta'
                 , class_loss = 'categorical_crossentropy'
                 , drop_rate = 0.0
@@ -199,7 +199,7 @@ class PretrainedClassifier(object):
             callbacks = [history]
             if early_stopping:
                 callbacks.append(MyEarlyStopping(**early_stopping))
-            ae.fit(X_l, X_l, batch_size=self.batch_size, nb_epoch=self.epochs // (2 ** (lay + 1)),
+            ae.fit(X_l, X_l, batch_size=self.batch_size, nb_epoch=self.epochs // (2 ** lay),
                    show_accuracy=True, callbacks=callbacks, verbose=2)
             X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
             cum_history.append(history.losses)
@@ -216,7 +216,7 @@ class PretrainedClassifier(object):
     def finetune(self,
                  name = None,
                  encdecs_name = "",
-                 early_stopping = {"monitor": "val_acc", "patience": 10, "verbose": 1},
+                 early_stopping = {"monitor": "val_acc", "patience": 1000, "verbose": 1},
                  test_data = None):
         """
         :param train_encdecs: If true, pretraining is done now, if not the latest pretrained layers are loaded
@@ -320,7 +320,7 @@ class PretrainedClassifier(object):
         self.sigma_base = self.catalog_get("gaussian_base_sigma", self.model_name)
         self.sigma_fact = self.catalog_get("gaussian_sigma_factor", self.model_name)
         self.new_model(fresh=True, compile=False)
-        self.model.load_weights(self.model_dir + self.prefix + self.model_name)
+        self.model.load_weights(self.model_dir + self.model_name)
         self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
 
     def save_model(self, f_name = None):
@@ -403,7 +403,7 @@ if __name__ == '__main__':
         normalized_data = cPickle.load(f)
     unsplit = [(e['phase'],e['raw']) for name in normalized_data.iterkeys() for e in normalized_data[name]]
     phases, data = zip(*unsplit)
-    pc = PretrainedClassifier(data, phases, 50, 3000, model_name = 'test', gauss_base_sigma=0.1, l2=0.001)
+    pc = PretrainedClassifier(data, phases, 50, 20000, model_name = 'test', gauss_base_sigma=0.1, gauss_sigma_factor=2, l2=0.001)
     print(pc.layer_sizes)
     pc.new_encdecs(True,True,True)
     pc.pretrain()
