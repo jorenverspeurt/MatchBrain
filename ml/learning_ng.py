@@ -463,7 +463,7 @@ if __name__ == '__main__':
         normalized_data = cPickle.load(f)
     unsplit = [(e['phase'],e['raw']) for name in normalized_data.iterkeys() for e in normalized_data[name]]
     phases, data = zip(*unsplit)
-    pc = PretrainedClassifier(data, phases, 50, 20000, model_name = 'test', gauss_base_sigma=0.1, gauss_sigma_factor=2, l2=0.001)
+    pc = PretrainedClassifier(data, phases, 50, 20000, model_name = 'test-'+time_str(), gauss_base_sigma=0.1, gauss_sigma_factor=2, l2=0.001)
     print(pc.layer_sizes)
     pc.new_encdecs(True,True,True)
     pc.pretrain()
