@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import random
+from itertools import repeat
 from math import log
 from operator import mul
 
@@ -145,6 +146,8 @@ class PretrainedClassifier(object):
                                         +("-l2_"+str(self.l2) if self.l2 > 0 else ""))
         self.encdecs_name = encdecs_name or "e-"+self.model_name
         self.model_name = "m-"+self.model_name if self.model_name else self.model_name
+        self._model_info = {}
+        self._encdec_info = {}
         # if encdecs_name:
         #     self.load_encdecs(encdecs_name)
         # elif model_name:
@@ -192,6 +195,8 @@ class PretrainedClassifier(object):
     def pretrain(self, name = None, overwrite_latest = True, overwrite_best = True, early_stopping = None):
         if not self.enc_decs:
             self.new_encdecs()
+        f_name = name or time_str()
+        self.encdecs_name = self.encdecs_name or f_name
         X_l = np.array(self.data)
         cum_history = []
         for (lay, ae) in enumerate(self.enc_decs):
@@ -203,13 +208,13 @@ class PretrainedClassifier(object):
                    show_accuracy=True, callbacks=callbacks, verbose=2)
             X_l = ae.predict(X_l, batch_size=self.batch_size, verbose=0)
             cum_history.append(history.losses)
-        f_name = name or time_str()
-        self.encdecs_name = self.encdecs_name or f_name
+        quality = reduce(mul, (i[-1][1] for i in cum_history))
+        self._encdec_info['train_quality'] = quality
+        self.evaluate_encdecs()
         self.save_encdecs(self.encdecs_name)
         if overwrite_latest:
             self.save_encdecs('latest')
-        quality = reduce(mul, (i[-1][1] for i in cum_history))
-        if quality > self.catalog_get('quality', 'best') and overwrite_best:
+        if quality > (self.catalog_get('quality', 'e-best') or 0) and overwrite_best:
             self.save_encdecs('best')
         return cum_history
 
@@ -217,7 +222,8 @@ class PretrainedClassifier(object):
                  name = None,
                  encdecs_name = "",
                  early_stopping = {"monitor": "val_acc", "patience": 1000, "verbose": 1},
-                 test_data = None):
+                 test_data = None,
+                 overwrite_best = True):
         """
         :param train_encdecs: If true, pretraining is done now, if not the latest pretrained layers are loaded
         :param early_stopping: Should be None or a dict with keys "monitor", "patience", and possibly "verbose"
@@ -253,8 +259,13 @@ class PretrainedClassifier(object):
                        callbacks=callbacks)
         score = self.model.evaluate(X_test, y_test, show_accuracy=True, verbose=0)
         logger.info({"finetune_score": score})
+        self._model_info['test_loss'] = score[0]
+        self._model_info['test_accuracy'] = score[1]
+        self.evaluate_model()
         self.save_model(name or self.model_name or time_str())
         self.save_model('latest')
+        if overwrite_best and score[1] > (self.catalog_get('test_accuracy', 'best') or 0):
+            self.save_model('best')
         return history.losses
 
     def new_encdecs(self, compile = True, use_dropout = None, use_noise = None):
@@ -334,16 +345,16 @@ class PretrainedClassifier(object):
 
     def save_encdecs(self, f_name = None):
         assert len(self.enc_decs) > 0
-        name = f_name or self.encdecs_name or self.model_name
+        name = "e-" + f_name or self.encdecs_name or "e-" + self.model_name
         base = self.model_dir + name
         for (i, ed) in enumerate(self.enc_decs):
             f = base + "-ed-" + str(i)
             ed.save_weights(f, overwrite=True)
-        self.catalog_update(self.encdec_info(), "ed-" + name)
+        self.catalog_update(self.encdec_info(), name)
 
     def load_encdecs(self, f_name = None):
-        name = f_name or self.encdecs_name or self.model_name or "latest"
-        get_cat = lambda item: self.catalog_get(item, "ed-" + name)
+        name = "e-" + f_name or self.encdecs_name or "e-" + self.model_name or "e-latest"
+        get_cat = lambda item: self.catalog_get(item, name)
         if not self.enc_decs:
             self.layer_sizes = get_cat("layer_sizes")
             use_drop = get_cat("enc_use_drop")
@@ -369,7 +380,46 @@ class PretrainedClassifier(object):
                                            for (l,ds) in data_by_key.iteritems()
                                            for d in ds])
 
-    def encdec_info(self):
+    def evaluate_model(self, label_data_pairs = None):
+        if self.model:
+            pairs = label_data_pairs or zip(self.labels, self.data)
+            data_by_label = {}
+            for (l, d) in pairs:
+                data_by_label.setdefault(l, []).append(d)
+            info = {}
+            phl = len(phase_names)
+            eye = np.identity(phl)
+            tc  = np_utils.to_categorical
+            for key in data_by_label:
+                arr = data_by_label[key]
+                eva = self.model.evaluate(arr
+                                         ,tc(map(lambda n: phase_names.index(n)
+                                                ,list(repeat(key, len(arr))))
+                                            ,phl)
+                                         ,show_accuracy=True)
+                counts = np.sum(map(lambda p: eye[np.argmax(p)]
+                                   ,self.model.predict(arr))
+                               ,axis=0)
+                info[key] = { 'loss': eva[0]
+                            , 'accuracy': eva[1]
+                            , 'counts': counts }
+            self._model_info.update(info)
+
+    def evaluate_encdecs(self, data = None):
+        if self.enc_decs:
+            data = data or np.array(self.data)
+            info = { 'quality': 1 }
+            for (i,ed) in enumerate(self.enc_decs):
+                eva = ed.evaluate(data, data, show_accuracy=True)
+                info["ed-"+str(i)] = { 'loss': eva[0]
+                                     , 'accuracy': eva[1] }
+                info['quality'] *= eva[1]
+            self._encdec_info.update(info)
+
+
+    def encdec_info(self, evaluate = None, eval_data = None):
+        if evaluate or (evaluate is None and self.enc_decs):
+            self.evaluate_encdecs(eval_data)
         info = {
             "epochs": self.epochs,
             "layer_sizes": self.layer_sizes,
@@ -382,9 +432,12 @@ class PretrainedClassifier(object):
             "l1": self.l1,
             "l2": self.l2
         }
+        info.update(self._encdec_info)
         return info
 
-    def model_info(self):
+    def model_info(self, evaluate=None):
+        if evaluate or (evaluate is None and self.model):
+            self.evaluate_model()
         info = {
             "epochs": self.epochs,
             "layer_sizes": self.layer_sizes,
@@ -396,6 +449,7 @@ class PretrainedClassifier(object):
             "l1": self.l1,
             "l2": self.l2
         }
+        info.update(self._model_info)
         return info
 
 if __name__ == '__main__':
