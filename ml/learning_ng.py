@@ -111,7 +111,9 @@ class PretrainedClassifier(object):
                 , gauss_sigma_factor = 1.0
                 , l1 = 0.0
                 , l2 = 0.0 ):
-        input_dim = len(safe_head(data))
+        input_dim = len(safe_head(data) or [])
+        if input_dim == 0:
+            raise ValueError("data must have length > 0")
         output_dim = len(set(labels))
         upper = int(log(input_dim)/log(2))
         lower = int(log(output_dim)/log(2))+1
