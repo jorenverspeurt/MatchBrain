@@ -333,14 +333,18 @@ class PretrainedClassifier(object):
 
     def load_model(self, f_name = None):
         self.model_name = f_name or self.model_name
-        self.layer_sizes = self.catalog_get("layer_sizes", self.model_name)
-        self.cls_opt = self.catalog_get("class_optimizer", self.model_name)
-        self.cls_lss = self.catalog_get("class_loss", self.model_name)
-        self.sigma_base = self.catalog_get("gaussian_base_sigma", self.model_name)
-        self.sigma_fact = self.catalog_get("gaussian_sigma_factor", self.model_name)
-        self.new_model(fresh=True, compile=False)
-        self.model.load_weights(self.model_dir + self.model_name)
-        self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
+        layer_sizes = self.catalog_get("layer_sizes", self.model_name)
+        if layer_sizes:
+            self.layer_sizes = layer_sizes
+            self.cls_opt = self.catalog_get("class_optimizer", self.model_name)
+            self.cls_lss = self.catalog_get("class_loss", self.model_name)
+            self.sigma_base = self.catalog_get("gaussian_base_sigma", self.model_name)
+            self.sigma_fact = self.catalog_get("gaussian_sigma_factor", self.model_name)
+            self.new_model(fresh=True, compile=False)
+            self.model.load_weights(self.model_dir + self.model_name)
+            self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
+        else:
+            logger.error({"error": "No such model in the catalog!"})
 
     def save_model(self, f_name = None):
         name = f_name or self.model_name
@@ -363,17 +367,20 @@ class PretrainedClassifier(object):
     def load_encdecs(self, f_name = None):
         name = (f_name and "e-" + f_name) or self.encdecs_name or (self.model_name and "e-" + self.model_name) or "e-latest"
         get_cat = lambda item: self.catalog_get(item, name)
-        if not self.enc_decs:
-            self.layer_sizes = get_cat("layer_sizes")
-            use_drop = get_cat("enc_use_drop")
-            use_noise = get_cat("enc_use_noise")
-            self.new_encdecs(compile=False, use_dropout=use_drop, use_noise=use_noise)
-        base = self.model_dir + name
-        self.enc_opt = get_cat("encdec_optimizer")
-        for (i, ed) in enumerate(self.enc_decs):
-            f = base + "-" + str(i)
-            ed.load_weights(f)
-            ed.compile(loss='mse', optimizer=self.enc_opt)
+        if get_cat("layer_sizes"):
+            if not self.enc_decs:
+                self.layer_sizes = get_cat("layer_sizes")
+                use_drop = get_cat("enc_use_drop")
+                use_noise = get_cat("enc_use_noise")
+                self.new_encdecs(compile=False, use_dropout=use_drop, use_noise=use_noise)
+            base = self.model_dir + name
+            self.enc_opt = get_cat("encdec_optimizer")
+            for (i, ed) in enumerate(self.enc_decs):
+                f = base + "-" + str(i)
+                ed.load_weights(f)
+                ed.compile(loss='mse', optimizer=self.enc_opt)
+        else:
+            logger.error({"error": "No such encdecs!"})
 
     def cap_data(self):
         data_by_key = {}
