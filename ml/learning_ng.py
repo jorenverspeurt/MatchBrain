@@ -348,7 +348,7 @@ class PretrainedClassifier(object):
         name = "e-" + f_name or self.encdecs_name or "e-" + self.model_name
         base = self.model_dir + name
         for (i, ed) in enumerate(self.enc_decs):
-            f = base + "-ed-" + str(i)
+            f = base + "-" + str(i)
             ed.save_weights(f, overwrite=True)
         self.catalog_update(self.encdec_info(), name)
 
@@ -363,7 +363,7 @@ class PretrainedClassifier(object):
         base = self.model_dir + name
         self.enc_opt = get_cat("encdec_optimizer")
         for (i, ed) in enumerate(self.enc_decs):
-            f = base + "-ed-" + str(i)
+            f = base + "-" + str(i)
             ed.load_weights(f)
             ed.compile(loss='mse', optimizer=self.enc_opt)
 
