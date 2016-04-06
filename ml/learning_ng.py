@@ -351,7 +351,7 @@ class PretrainedClassifier(object):
 
     def save_encdecs(self, f_name = None):
         assert len(self.enc_decs) > 0
-        name = "e-" + f_name or self.encdecs_name or "e-" + self.model_name
+        name = (f_name and "e-" + f_name) or self.encdecs_name or (self.model_name and "e-" + self.model_name)
         base = self.model_dir + name
         for (i, ed) in enumerate(self.enc_decs):
             f = base + "-" + str(i)
@@ -359,7 +359,7 @@ class PretrainedClassifier(object):
         self.catalog_update(self.encdec_info(), name)
 
     def load_encdecs(self, f_name = None):
-        name = "e-" + f_name or self.encdecs_name or "e-" + self.model_name or "e-latest"
+        name = (f_name and "e-" + f_name) or self.encdecs_name or (self.model_name and "e-" + self.model_name) or "e-latest"
         get_cat = lambda item: self.catalog_get(item, name)
         if not self.enc_decs:
             self.layer_sizes = get_cat("layer_sizes")
