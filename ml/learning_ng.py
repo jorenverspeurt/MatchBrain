@@ -465,8 +465,9 @@ class PretrainedClassifier(object):
         return info
 
 
-def default_instance():
-    with gzip.open('normalized.pkl.gz', 'rb') as f:
+def default_instance(file_name = None):
+    location = file_name or safe_head(glob.glob(os.path.join(os.path.dirname(__file__), 'normalized.pkl.gz')))
+    with gzip.open(location, 'rb') as f:
         normalized_data = cPickle.load(f)
     unsplit = [(e['phase'],e['raw']) for name in normalized_data.iterkeys() for e in normalized_data[name]]
     phases, data = zip(*unsplit)
