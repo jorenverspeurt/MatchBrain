@@ -399,7 +399,7 @@ class PretrainedClassifier(object):
             data_by_label = {}
             for (l, d) in pairs:
                 data_by_label.setdefault(l, []).append(d)
-            info = {}
+            info = { 'labels': {} }
             phl = len(phase_names)
             eye = np.identity(phl)
             tc  = np_utils.to_categorical
@@ -414,21 +414,21 @@ class PretrainedClassifier(object):
                 counts = np.sum(map(lambda p: eye[np.argmax(p)]
                                    ,self.model.predict(arr, batch_size=self.batch_size))
                                ,axis=0)
-                info[key] = { 'loss': float(eva[0])
-                            , 'accuracy': float(eva[1])
-                            , 'counts': map(int, list(counts)) }
+                info['labels'][key] = { 'loss': float(eva[0])
+                                      , 'accuracy': float(eva[1])
+                                      , 'counts': map(int, list(counts)) }
             self._model_info.update(info)
 
     def evaluate_encdecs(self, data = None):
         if self.enc_decs:
             data = data or np.array(self.data)
-            info = { 'quality': 1 }
+            info = { 'quality': 1, 'layers': {} }
             for (i,ed) in enumerate(self.enc_decs):
                 ed.layers[0].output_reconstruction = True
                 ed.compile(loss='mse', optimizer=self.enc_opt)
                 eva = ed.evaluate(data, data, show_accuracy=True, verbose=0, batch_size= self.batch_size)
-                info["ed-"+str(i)] = { 'loss': float(eva[0])
-                                     , 'accuracy': float(eva[1]) }
+                info['layers'][str(i)] = { 'loss': float(eva[0])
+                                         , 'accuracy': float(eva[1]) }
                 info['quality'] *= float(eva[1])
                 ed.layers[0].output_reconstruction = False
                 ed.compile(loss='mse', optimizer=self.enc_opt)
