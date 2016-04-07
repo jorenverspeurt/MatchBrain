@@ -4,7 +4,6 @@ import cPickle
 import datetime as dt
 import glob
 import gzip
-import json
 import logging
 import os
 import random
@@ -22,6 +21,8 @@ from keras.regularizers import WeightRegularizer
 from keras.utils import np_utils
 from sklearn.cross_validation import train_test_split
 
+from catalog import CatalogManager
+
 __author__ = 'joren'
 
 logger = logging.getLogger('learning')
@@ -31,6 +32,18 @@ logging.basicConfig(level=logging.INFO)
 phase_names = ['DISTRACT', 'RELAXOPEN', 'RELAXCLOSED', 'CASUAL', 'INTENSE']
 
 time_str = lambda: dt.datetime.now().strftime('%y%m%d-%H%M%S')
+
+def mfy(name):
+    return name and ("m-"+name if not name.startswith("m-") else name)
+
+def unmfy(name):
+    return name and (name.replace("m-", "", 1) if name.startswith("m-") else name)
+
+def efy(name):
+    return name and ("e-"+name if not name.startswith("e-") else name)
+
+def unefy(name):
+    return name and (name.replace("e-", "", 1) if name.startswith("e-") else name)
 
 class MyEarlyStopping(EarlyStopping):
     def __init__(self, monitor="acc", patience=10, verbose=0, desired="high"):
@@ -125,7 +138,8 @@ class PretrainedClassifier(object):
         self.enc_decs = []
         self.model = None
         self.model_dir = model_dir or safe_head(glob.glob(os.path.join(os.path.dirname(__file__), '..', 'models')))+"/" or ""
-        self._catalog_path = os.path.join(self.model_dir, 'ng_catalog.json')
+        self._catalog_path = os.path.join(self.model_dir, "ng_catalog.json")
+        self.catalog_manager = CatalogManager(self._catalog_path)
         self.batch_size = batch_size
         self.enc_opt = encdec_optimizer
         self.cls_opt = class_optimizer
@@ -137,17 +151,16 @@ class PretrainedClassifier(object):
         self.enc_use_noise = False
         self.l1 = l1
         self.l2 = l2
-        self.model_name = model_name or (""
-                                        +"edo_"+self.enc_opt
-                                        +"-co_"+self.cls_opt
-                                        +"-cl_"+self.cls_lss
-                                        +("-dr_"+str(self.drop_rate) if self.drop_rate > 0 else "")
-                                        +("-sb_"+str(self.sigma_base)
-                                         +"-sf_"+str(self.sigma_fact) if self.sigma_base > 0 else "")
-                                        +("-l1_"+str(self.l1) if self.l1 > 0 else "")
-                                        +("-l2_"+str(self.l2) if self.l2 > 0 else ""))
-        self.encdecs_name = encdecs_name or "e-"+self.model_name
-        self.model_name = "m-"+self.model_name if self.model_name else self.model_name
+        self._model_name = model_name or (""
+                                         +"edo_"+self.enc_opt
+                                         +"-co_"+self.cls_opt
+                                         +"-cl_"+self.cls_lss
+                                         +("-dr_"+str(self.drop_rate) if self.drop_rate > 0 else "")
+                                         +("-sb_"+str(self.sigma_base)
+                                          +"-sf_"+str(self.sigma_fact) if self.sigma_base > 0 else "")
+                                         +("-l1_"+str(self.l1) if self.l1 > 0 else "")
+                                         +("-l2_"+str(self.l2) if self.l2 > 0 else ""))
+        self._encdecs_name = None
         self._model_info = {}
         self._encdec_info = {}
         # if encdecs_name:
@@ -155,44 +168,21 @@ class PretrainedClassifier(object):
         # elif model_name:
         #     self.load_model(model_name)
 
-    def catalog_get(self, param_name, model_name = "latest"):
-        if glob.glob(self._catalog_path):
-            with open(self._catalog_path, 'r') as f:
-                catalog = json.loads(f.read())
-                if model_name in catalog and param_name in catalog[model_name]:
-                    return catalog[model_name][param_name]
-                else:
-                    return None
-        else:
-            return None
+    @property
+    def model_name(self):
+        return mfy(self._model_name)
 
-    def catalog_set(self, value, param_name, model_name = "latest"):
-        catalog = { model_name: { param_name: value } }
-        if glob.glob(self._catalog_path):
-            with open(self._catalog_path, 'r') as f:
-                catalog = json.loads(f.read())
-                if model_name in catalog:
-                    catalog[model_name][param_name] = value
-                else:
-                    catalog[model_name] = { param_name: value }
-        with open(self._catalog_path, 'w') as f:
-            f.write(json.dumps(catalog, indent=2, sort_keys=True))
+    @model_name.setter
+    def model_name(self, m):
+        self._model_name = unmfy(m)
 
+    @property
+    def encdecs_name(self):
+        return efy(self._encdecs_name or self._model_name)
 
-    def catalog_update(self, info, model_name):
-        catalog = { model_name: info }
-        if glob.glob(self._catalog_path):
-            with open(self._catalog_path, 'r') as f:
-                catalog = json.loads(f.read())
-                if model_name in catalog:
-                    entry = catalog[model_name]
-                    allkeys = set(entry.keys())
-                    allkeys.update(info.keys())
-                    catalog[model_name] = {key: (info[key] if key in info else entry[key]) for key in allkeys}
-                else:
-                    catalog[model_name] = info
-        with open(self._catalog_path, 'w') as f:
-            f.write(json.dumps(catalog, indent=2, sort_keys=True))
+    @encdecs_name.setter
+    def encdecs_name(self, e):
+        self._encdecs_name = unefy(e)
 
     def pretrain(self, name = None, overwrite_latest = True, overwrite_best = True, early_stopping = None):
         if not self.enc_decs:
@@ -216,11 +206,10 @@ class PretrainedClassifier(object):
             cum_history.append(history.losses)
         quality = reduce(mul, (i[-1][1] for i in cum_history))
         self._encdec_info['train_quality'] = quality
-        self.evaluate_encdecs()
         self.save_encdecs(self.encdecs_name)
         if overwrite_latest:
             self.save_encdecs('latest')
-        if quality > (self.catalog_get('quality', 'e-best') or 0) and overwrite_best:
+        if quality > (self.catalog_manager.get(efy('best'),'train_quality') or 0) and overwrite_best:
             self.save_encdecs('best')
         return cum_history
 
@@ -236,10 +225,13 @@ class PretrainedClassifier(object):
         :return: The loss and accuracy history of the model fit, type [((loss,acc),(val_loss,val_acc))]
         """
         start_time = time_str()
+        self._model_info["pretrain_start_time"]=start_time
         if encdecs_name:
             self.load_encdecs(encdecs_name)
         if not self.model:
             self.new_model()
+        if self.enc_decs:
+            self._model_info["encdecs_name"] = self.encdecs_name
         X_train, X_val, y_train, y_val = train_test_split(
             # map(np.array, self.data), # shouldn't be necessary
             self.data,
@@ -257,7 +249,7 @@ class PretrainedClassifier(object):
                 lambda n: phase_names.index(n) if n else phase_names.index("DISTRACT"),
             ph_t))
         history = History()
-        callbacks = [ModelCheckpoint("m-"+start_time+"-{epoch}-{val_acc:.4f}.hdf5", save_best_only=True), history]
+        callbacks = [ModelCheckpoint("cp-"+start_time+"-{epoch}-{val_acc:.4f}.hdf5", save_best_only=True), history]
         if early_stopping:
             callbacks.append(MyEarlyStopping(**early_stopping))
         self.model.fit(np.array(X_train), y_train, batch_size=self.batch_size, nb_epoch=self.epochs,
@@ -265,12 +257,13 @@ class PretrainedClassifier(object):
                        callbacks=callbacks)
         score = self.model.evaluate(X_test, y_test, show_accuracy=True, verbose=0)
         logger.info({"finetune_score": score})
-        self._model_info['test_loss'] = score[0]
-        self._model_info['test_accuracy'] = score[1]
-        self.evaluate_model()
-        self.save_model(name or self.model_name or time_str())
+        self._model_info["pretrain_end_time"] = time_str()
+        self._model_info["test_loss"] = score[0]
+        self._model_info["test_accuracy"] = score[1]
+        self.model_name = name or self.model_name or time_str()
+        self.save_model()
         self.save_model('latest')
-        if overwrite_best and score[1] > (self.catalog_get('test_accuracy', 'best') or 0):
+        if overwrite_best and score[1] > (self.catalog_manager.get(mfy('best'), 'test_accuracy') or 0):
             self.save_model('best')
         return history.losses
 
@@ -332,41 +325,45 @@ class PretrainedClassifier(object):
             self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
 
     def load_model(self, f_name = None):
-        self.model_name = f_name or self.model_name
-        layer_sizes = self.catalog_get("layer_sizes", self.model_name)
+        name = mfy(f_name) or self.model_name
+        layer_sizes = self.catalog_manager.get(name, "layer_sizes")
         if layer_sizes:
             self.layer_sizes = layer_sizes
-            self.cls_opt = self.catalog_get("class_optimizer", self.model_name)
-            self.cls_lss = self.catalog_get("class_loss", self.model_name)
-            self.sigma_base = self.catalog_get("gaussian_base_sigma", self.model_name)
-            self.sigma_fact = self.catalog_get("gaussian_sigma_factor", self.model_name)
+            self.cls_opt = self.catalog_manager.get(name, "class_optimizer")
+            self.cls_lss = self.catalog_manager.get(name, "class_loss")
+            self.sigma_base = self.catalog_manager.get(name, "gaussian_base_sigma")
+            self.sigma_fact = self.catalog_manager.get(name, "gaussian_sigma_factor")
             self.new_model(fresh=True, compile=False)
             self.model.load_weights(self.model_dir + self.model_name)
             self.model.compile(loss=self.cls_lss, optimizer=self.cls_opt)
+            self.model_name = name
         else:
             logger.error({"error": "No such model in the catalog!"})
 
     def save_model(self, f_name = None):
-        name = f_name or self.model_name
         if not self.model:
             logger.error({"error": "Tried to save, but no model!"})
         else:
-            f = self.model_dir + name
+            name = mfy(f_name) or self.model_name
+            f = os.path.join(self.model_dir, name)
             self.model.save_weights(f, overwrite=True)
-            self.catalog_update(self.model_info(), name)
+            self.catalog_manager.update(name, self.model_info())
 
     def save_encdecs(self, f_name = None):
         assert len(self.enc_decs) > 0
-        name = (f_name and "e-" + f_name) or self.encdecs_name or (self.model_name and "e-" + self.model_name)
-        base = self.model_dir + name
-        for (i, ed) in enumerate(self.enc_decs):
-            f = base + "-" + str(i)
-            ed.save_weights(f, overwrite=True)
-        self.catalog_update(self.encdec_info(), name)
+        if not self.enc_decs:
+            logger.error({"error": "Tried to save, but no encdecs!"})
+        else:
+            name = efy(f_name) or self.encdecs_name
+            base = os.path.join(self.model_dir, name)
+            for (i, ed) in enumerate(self.enc_decs):
+                f = base + "-" + str(i)
+                ed.save_weights(f, overwrite=True)
+            self.catalog_manager.update(name, self.encdec_info())
 
     def load_encdecs(self, f_name = None):
-        name = (f_name and "e-" + f_name) or self.encdecs_name or (self.model_name and "e-" + self.model_name) or "e-latest"
-        get_cat = lambda item: self.catalog_get(item, name)
+        name = efy(f_name) or self.encdecs_name
+        get_cat = lambda item: self.catalog_manager.get(name, item)
         if get_cat("layer_sizes"):
             if not self.enc_decs:
                 self.layer_sizes = get_cat("layer_sizes")
@@ -379,6 +376,7 @@ class PretrainedClassifier(object):
                 f = base + "-" + str(i)
                 ed.load_weights(f)
                 ed.compile(loss='mse', optimizer=self.enc_opt)
+            self.encdecs_name = name
         else:
             logger.error({"error": "No such encdecs!"})
 
