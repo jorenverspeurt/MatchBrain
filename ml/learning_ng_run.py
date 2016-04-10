@@ -3,7 +3,7 @@ import glob
 import gzip
 import os
 
-from learning_ng import PretrainedClassifier as Classifier, safe_head
+from learning_ng import PretrainedClassifier as Classifier, safe_head, time_str
 
 default_data_location = safe_head(glob.glob(os.path.join(os.path.dirname(__file__), 'normalized.pkl.gz')))
 
@@ -99,6 +99,7 @@ class LearningRunner(object):
                                     for (o,cl) in enumerate(self.class_losses):
                                         suffix = "-%s%s%s%s%s%s%s" % (i,j,k,l,m,n,o)
                                         current_name = self.model_name + ifxval + suffix
+                                        start_time = time_str()
                                         pc.catalog_manager.update({
                                             'cross_validation': {
                                                 'enabled': bool(self.cross_val_drops),
@@ -115,7 +116,8 @@ class LearningRunner(object):
                                                 '%s-cl'%o: self.class_losses
                                             },
                                             ifxval + suffix: {
-                                                'finished': False
+                                                'finished': False,
+                                                'start_time': start_time
                                             }
                                         }, self.model_name)
                                         pc.model_name = current_name
@@ -125,7 +127,10 @@ class LearningRunner(object):
                                         history = pc.finetune()
                                         with gzip.open(os.path.join(os.path.dirname(default_data_location), current_name + '.history.pkl.gz'), 'wb') as f:
                                             cPickle.dump(history, f, 2)
-                                        pc.catalog_manager.set({ 'finished': True, 'test_accuracy': pc._model_info['test_accuracy'] }, self.model_name, ifxval + suffix)
+                                        pc.catalog_manager.set({ 'finished': True,
+                                                                 'test_accuracy': pc._model_info['test_accuracy'],
+                                                                 'start_time': start_time,
+                                                                 'end_time': time_str }, self.model_name, ifxval + suffix)
             self.cross_val_index += 1
 
     def split_data(self, xval = False, label_sel = 'phase', data_sel = 'raw'):
