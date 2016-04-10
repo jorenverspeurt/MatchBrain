@@ -72,7 +72,7 @@ class LearningRunner(object):
                         for (l, l1) in enumerate(self.l1s):
                             for (m, l2) in enumerate(self.l2s):
                                 ifxval = ("-x%s" % self.cross_val_index if self.cross_val_drops else "")
-                                current_name = self.model_name + ("-%s%s%s%s%s" % (i,j,k,l,m)) + ifxval
+                                current_name = self.model_name + ("-%s%s%s%s" % (j,k,l,m)) + ifxval
                                 enc_name = self.encdecs_name + ("-%s%s%s%s%s" % (i,j,k,l,m)) + ifxval
                                 pc = Classifier(
                                     data,
@@ -96,14 +96,18 @@ class LearningRunner(object):
                                 pc.cap_data()
                                 for (n,co) in enumerate(self.class_optimizers):
                                     for (o,cl) in enumerate(self.class_losses):
+                                        suffix = "-%s%s%s%s%s%s" % (j,k,l,m,n,o)
+                                        current_name = self.model_name + suffix + ifxval
                                         pc.catalog_manager.update({
                                             'cross_validation': {
                                                 'enabled': bool(self.cross_val_drops),
                                                 'drops': self.cross_val_drops,
                                                 'index_reached': self.cross_val_index
+                                            },
+                                            suffix: {
+                                                'finished': False
                                             }
                                         }, self.model_name)
-                                        current_name = self.model_name + ("-%s%s%s%s%s" % (i,j,k,l,m)) + ifxval
                                         pc.model_name = current_name
                                         pc.cls_opt = co
                                         pc.cls_lss = cl
@@ -111,6 +115,7 @@ class LearningRunner(object):
                                         history = pc.finetune()
                                         with gzip.open(os.path.join(os.path.dirname(default_data_location), current_name + '.history.pkl.gz'), 'wb') as f:
                                             cPickle.dump(history, f, 2)
+                                        pc.catalog_manager.set({ suffix: { 'finished': True, 'test_accuracy': pc._model_info['test_accuracy'] } })
             self.cross_val_index += 1
 
     def split_data(self, xval = False, label_sel = 'phase', data_sel = 'raw'):

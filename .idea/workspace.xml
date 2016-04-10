@@ -4,10 +4,9 @@
     <bookmark url="file://$PROJECT_DIR$/core/GameModel.py" line="331" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="6904720f-433c-4696-87df-0409892a4795" name="Default" comment="Better cataloguing">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ml/learning_ng_run.py" />
+    <list default="true" id="6904720f-433c-4696-87df-0409892a4795" name="Default" comment="Made a runner for experiments. May add special cataloguing capabilities for it later">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ml/learning_ng.py" afterPath="$PROJECT_DIR$/ml/learning_ng.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ml/learning_ng_run.py" afterPath="$PROJECT_DIR$/ml/learning_ng_run.py" />
     </list>
     <ignored path="MatchBrain.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -137,7 +136,7 @@
           <file leaf-file-name="learning_ng.py" pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/ml/learning_ng.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="-2836">
+                <state relative-caret-position="271">
                   <caret line="246" column="24" selection-start-line="246" selection-start-column="24" selection-end-line="246" selection-end-column="24" />
                   <folding>
                     <element signature="e#0#37#0" expanded="true" />
@@ -149,10 +148,10 @@
           <file leaf-file-name="learning_ng_run.py" pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/ml/learning_ng_run.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="390">
-                  <caret line="109" column="70" selection-start-line="109" selection-start-column="70" selection-end-line="109" selection-end-column="70" />
+                <state relative-caret-position="840">
+                  <caret line="117" column="94" selection-start-line="117" selection-start-column="94" selection-end-line="117" selection-end-column="94" />
                   <folding>
-                    <element signature="e#0#15#0" expanded="true" />
+                    <element signature="e#0#14#0" expanded="true" />
                   </folding>
                 </state>
               </provider>
@@ -228,9 +227,10 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="43" />
-    <option name="width" value="1073" />
-    <option name="height" value="1080" />
+    <option name="x" value="42" />
+    <option name="y" value="-1" />
+    <option name="width" value="1879" />
+    <option name="height" value="1082" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -819,15 +819,23 @@
       <option name="project" value="LOCAL" />
       <updated>1460061938259</updated>
     </task>
-    <option name="localTasksCounter" value="35" />
+    <task id="LOCAL-00035" summary="Made a runner for experiments. May add special cataloguing capabilities for it later">
+      <created>1460297492454</created>
+      <option name="number" value="00035" />
+      <option name="presentableId" value="LOCAL-00035" />
+      <option name="project" value="LOCAL" />
+      <updated>1460297492454</updated>
+    </task>
+    <option name="localTasksCounter" value="36" />
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="43" y="0" width="1073" height="1080" extended-state="0" />
+    <frame x="42" y="-1" width="1879" height="1082" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.15553436" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.08791801" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25104168" sideWeight="0.5066794" order="8" side_tool="true" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.49666983" order="12" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
@@ -835,7 +843,6 @@
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.49666983" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32916668" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
@@ -860,7 +867,6 @@
   </component>
   <component name="VcsManagerConfiguration">
     <option name="OFFER_MOVE_TO_ANOTHER_CHANGELIST_ON_PARTIAL_COMMIT" value="false" />
-    <MESSAGE value="Waaay too much to sum up in a single commit message (this should probably have been like... 10 or 20 commits...). Imported the mindwavemobile library, added the AutoEncoder code (not finished yet but it's close), bunch of other stuff. Also removed tons of bugs from the game code." />
     <MESSAGE value="The AutoTransformer stuff should work now, I did change it to batch in stead of online learning for the time being, still have to try different settings to get the durn thang to learn properly (it's confused by a difference in available data for the different stages at the moment). I'm starting work on changing certain aspects of the game itself." />
     <MESSAGE value="Changed the colors of the fruit based on user feedback, also changed size of 1. Added new objectives sidebar, new objectives aren't yet available though. Added a script that does grid search for the classifier, specifically made to be run on my DO droplet. To write that script I had to rewrite a lot of ml.learning, so it's a lot more general now." />
     <MESSAGE value="Couple of changes needed to put in the new multiple objective system, committing to be able to do a merge later." />
@@ -885,7 +891,8 @@
     <MESSAGE value="Guards!" />
     <MESSAGE value="Changed the way using the catalog works for learning_ng" />
     <MESSAGE value="Better cataloguing" />
-    <option name="LAST_COMMIT_MESSAGE" value="Better cataloguing" />
+    <MESSAGE value="Made a runner for experiments. May add special cataloguing capabilities for it later" />
+    <option name="LAST_COMMIT_MESSAGE" value="Made a runner for experiments. May add special cataloguing capabilities for it later" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
   </component>
   <component name="XDebuggerManager">
@@ -1265,7 +1272,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/ml/learning_ng.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2836">
+        <state relative-caret-position="271">
           <caret line="246" column="24" selection-start-line="246" selection-start-column="24" selection-end-line="246" selection-end-column="24" />
           <folding>
             <element signature="e#0#37#0" expanded="true" />
@@ -1275,10 +1282,10 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/ml/learning_ng_run.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="390">
-          <caret line="109" column="70" selection-start-line="109" selection-start-column="70" selection-end-line="109" selection-end-column="70" />
+        <state relative-caret-position="840">
+          <caret line="117" column="94" selection-start-line="117" selection-start-column="94" selection-end-line="117" selection-end-column="94" />
           <folding>
-            <element signature="e#0#15#0" expanded="true" />
+            <element signature="e#0#14#0" expanded="true" />
           </folding>
         </state>
       </provider>
