@@ -104,6 +104,15 @@ class LearningRunner(object):
                                                 'drops': self.cross_val_drops,
                                                 'index_reached': self.cross_val_index
                                             },
+                                            'settings': {
+                                                '%s-eo'%i: self.encdec_optimizers,
+                                                '%s-dr'%j: self.drop_rates,
+                                                '%s-(gbs,gsf)'%k: gauss_combs,
+                                                '%s-l1s'%l: self.l1s,
+                                                '%s-l2s'%m: self.l2s,
+                                                '%s-co'%n: self.class_optimizers,
+                                                '%s-cl'%o: self.class_losses
+                                            },
                                             suffix: {
                                                 'finished': False
                                             }
@@ -115,7 +124,7 @@ class LearningRunner(object):
                                         history = pc.finetune()
                                         with gzip.open(os.path.join(os.path.dirname(default_data_location), current_name + '.history.pkl.gz'), 'wb') as f:
                                             cPickle.dump(history, f, 2)
-                                        pc.catalog_manager.set({ suffix: { 'finished': True, 'test_accuracy': pc._model_info['test_accuracy'] } })
+                                        pc.catalog_manager.set({ 'finished': True, 'test_accuracy': pc._model_info['test_accuracy'] }, self.model_name, suffix)
             self.cross_val_index += 1
 
     def split_data(self, xval = False, label_sel = 'phase', data_sel = 'raw'):
@@ -130,24 +139,25 @@ class LearningRunner(object):
 
 if __name__ == '__main__':
     runner = LearningRunner(
-        data_location='./normalized_data.pkl.gz',
+        data_location='./normalized.pkl.gz',
         test_run=False,
         cross_val = True,
         # Classifier-general
-        epochs = 300000,
+        epochs = 100,
         batch_size = 50,
         max_layer_sizes = 0,
-        encdecs_name = "",
-        model_name = "",
+        encdecs_name = "runner-test",
+        model_name = "runner-test",
         # Classifier-specific,
         encdec_optimizers = ('adadelta',),
         class_optimizers = ('adadelta',),
         class_losses = ('categorical_crossentropy',),
-        drop_rates = (0.0,),
-        gauss_base_sigmas = (0.0,),
-        gauss_sigma_factors = (1.0,),
-        l1s = (0.0,),
-        l2s = (0.0,)
+        drop_rates = (0.0, 0.1),
+        gauss_base_sigmas = (0.1, 0.5, 0.0,),
+        gauss_sigma_factors = (1.0, 2.0),
+        l1s = (0.0, 0.01, 0.1),
+        l2s = (0.0, 0.01, 0.1)
     )
+    runner.run()
 
 

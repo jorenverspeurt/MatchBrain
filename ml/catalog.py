@@ -39,6 +39,7 @@ class CatalogManager(object):
 
     def set(self, value, model_name, param_name = None):
         if not isinstance(model_name, str):
+            print(model_name)
             raise ValueError("model_name must be a string!")
         if param_name is None:
             self._catalog_rep[model_name] = value
@@ -50,6 +51,7 @@ class CatalogManager(object):
 
     def update(self, value, model_name):
         if not isinstance(model_name, str):
+            print(model_name)
             raise ValueError("model_name must be a string!")
         if model_name in self._catalog_rep:
             self._catalog_rep[model_name].update(value)

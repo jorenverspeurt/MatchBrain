@@ -348,7 +348,7 @@ class PretrainedClassifier(object):
             name = mfy(f_name) or self.model_name
             f = os.path.join(self.model_dir, name)
             self.model.save_weights(f, overwrite=True)
-            self.catalog_manager.update(name, self.model_info())
+            self.catalog_manager.update(self.model_info(), name)
 
     def save_encdecs(self, f_name = None):
         assert len(self.enc_decs) > 0
@@ -360,7 +360,7 @@ class PretrainedClassifier(object):
             for (i, ed) in enumerate(self.enc_decs):
                 f = base + "-" + str(i)
                 ed.save_weights(f, overwrite=True)
-            self.catalog_manager.update(name, self.encdec_info())
+            self.catalog_manager.update(self.encdec_info(), name)
 
     def load_encdecs(self, f_name = None):
         name = efy(f_name) or self.encdecs_name
