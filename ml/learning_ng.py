@@ -123,7 +123,8 @@ class PretrainedClassifier(object):
                 , gauss_base_sigma = 0.0
                 , gauss_sigma_factor = 1.0
                 , l1 = 0.0
-                , l2 = 0.0 ):
+                , l2 = 0.0
+                , catalog_class = CatalogManager):
         input_dim = data and isinstance(data[0], np.ndarray) and len(data[0])
         if not input_dim:
             raise ValueError("data must have length > 0")
@@ -139,7 +140,7 @@ class PretrainedClassifier(object):
         self.model = None
         self.model_dir = model_dir or safe_head(glob.glob(os.path.join(os.path.dirname(__file__), '..', 'models')))+"/" or ""
         self._catalog_path = os.path.join(self.model_dir, "ng_catalog.json")
-        self.catalog_manager = CatalogManager(self._catalog_path)
+        self.catalog_manager = catalog_class(self._catalog_path)
         self.batch_size = batch_size
         self.enc_opt = encdec_optimizer
         self.cls_opt = class_optimizer
@@ -160,7 +161,7 @@ class PretrainedClassifier(object):
                                           +"-sf_"+str(self.sigma_fact) if self.sigma_base > 0 else "")
                                          +("-l1_"+str(self.l1) if self.l1 > 0 else "")
                                          +("-l2_"+str(self.l2) if self.l2 > 0 else ""))
-        self._encdecs_name = None
+        self._encdecs_name = encdecs_name
         self._model_info = {}
         self._encdec_info = {}
         # if encdecs_name:
