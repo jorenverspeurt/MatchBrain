@@ -204,7 +204,7 @@ if __name__ == '__main__':
     Compute necessary statistics
     """
     drop_seconds = 4
-    shift = 4 # TODO: actually shift...
+    shift = 16
     ###
     # type DEntry = { "brainwave": { "eSense": {"meditation": int, "attention": int}
     #                                          , "raw": [int]
@@ -229,7 +229,8 @@ if __name__ == '__main__':
     #                     keyboard = {"key": symbol} where symbol = string
     # type Nick = {"nick": str, "version": float, "startTime": str}
     # all_logs :: {filename: [Nick or {"data": DEntry, ascTime: str}]}
-    all_logs = loadall()
+    all_logs = loadall('./logs/')
+    print('loaded')
     np.set_printoptions(precision=3, suppress=True)
 
     # handle_data_entry :: ({"data": DEntry} -> bw or tr or None) or ({ other } -> None)
@@ -258,6 +259,7 @@ if __name__ == '__main__':
     result = { fname: filter(None, map(handle_data_entry, fc))
                for (fname, fc) in all_logs.iteritems() }
     # result: { filename: [bw or tr] }
+    print('handled data entries')
 
     # change_drop :: (str, int, [bw]) -> (bw or tr) -> (str, int, [bw])
     def change_drop((cur_phase, count, data_acc), new_data):
@@ -282,6 +284,28 @@ if __name__ == '__main__':
     # result :: { filename: [bw] }
     result = { fname: reduce(change_drop, fc, (phase_names[0], drop_seconds, []))[2]
                for (fname, fc) in result.iteritems() }
+    print('dropped unnecessaries')
+
+    # Shift windows
+    def smart_shift(cur, nex, shift):
+        def handle(vcur, vnex, index):
+            if isinstance(vcur,list):
+                return interp_ls(vcur, vnex, index)
+            elif isinstance(vcur,int) or isinstance(vcur,float):
+                return interp_vals(vcur, vnex, index, 512)
+            elif isinstance(vcur,dict):
+                return {k: handle(vcur[k], vnex[k], index) for k in vcur.iterkeys()}
+            else:
+                return vcur
+        return [handle(cur, nex, i) for i in xrange(0, 512, shift)]
+
+    result = { fname: [e
+                       for l in map(lambda c,n: smart_shift(c, n, shift)
+                                   ,entries[0:-1]
+                                   ,entries[1:])
+                       for e in l]
+               for fname, entries in result.iteritems() }
+    print('shifted')
 
     # A convoluted way of mapping fix_length over just result['raw'] and leaving the rest untouched
     # Replace raw data by preprocess'ed version
@@ -290,6 +314,7 @@ if __name__ == '__main__':
                                                                  ,[wavelet_trans, fourier_trans, extremes])) })
                          ,fc)
                for (fname, fc) in result.iteritems() }
+    print('preprocessed')
 
     # Needed stats for normalization: mean and standard deviation
     # statd :: array -> {"mean": array, "std": array, 'n': int}
@@ -313,6 +338,7 @@ if __name__ == '__main__':
                  for (cat, f) in l_cat_f }
 
     allstats = getstats(result, nfs)
+    print('allstats')
     # Group sessions per player
     # Keep both the original preproc data and averages in the new result
     pname_for = lambda f: ''.join(takewhile(lambda c: c!='2', f)).split('/')[-1]
@@ -327,6 +353,7 @@ if __name__ == '__main__':
                                   for (fname, fc) in result.iteritems()
                                   if pname_for(fname) == pname})
                   for (pname, pc) in perplayer.iteritems() }
+    print('perplayer')
     # result :: { 'stats': { ... }
     #           , 'players': { pname1: { 'stats': { 'raw': { ... }, ... }
     #                                  , f_p1: { 'stats': { ... }, 'data': [...] }
@@ -335,6 +362,7 @@ if __name__ == '__main__':
     result = { 'stats': allstats, 'players': perplayer }
     with gzip.open('unscaled.pkl.gz','wb') as f:
         cPickle.dump(result, f, 2)
+    print('wrote unscaled')
     def dict_without(dic, keys):
         return { k: v if not isinstance(v, dict) else dict_without(v, keys) for (k, v) in dic.iteritems() if not k in keys }
     def normalized_by(scaled, scaling):
@@ -355,4 +383,5 @@ if __name__ == '__main__':
                if fname != 'stats' }
     with gzip.open('normalized.pkl.gz','wb') as f:
         cPickle.dump(scaled, f, 2)
+    print('wrote normalized')
 

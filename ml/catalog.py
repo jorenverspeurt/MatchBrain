@@ -6,7 +6,6 @@ import uuid
 
 import numpy as np
 
-
 class CatalogManager(object):
     def __init__(self, location):
         self.location = location
@@ -60,6 +59,14 @@ class CatalogManager(object):
             self._catalog_rep[model_name].update(value)
         self._write()
 
+class DummyCatalogManager(CatalogManager):
+    def _read(self):
+        pass
+
+    def _write(self):
+        dump = json.dumps(self._catalog_rep, indent=2, sort_keys=True, cls=CustomJSONEncoder)
+        print(dump)
+
 
 class CustomJSONEncoder(json.JSONEncoder):
     def __init__(self, *args, **kwargs):
@@ -90,11 +97,14 @@ class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, self.NoIndent):
             key = uuid.uuid4().hex
-            self._replacement_map[key] = json.dumps(obj.value, **self.kwargs)
+            self._replacement_map[key] = json.dumps(obj.value, cls = CustomJSONEncoder,**self.kwargs)
             return "@@%s@@" % (key,)
         if isinstance(obj, np.ndarray):
             return self.default(self.NoIndent(list(obj)))
-        return super(CustomJSONEncoder, self).default(obj)
+        else:
+            return repr(obj)
+        #I may regret this later but oh well
+        #return super(CustomJSONEncoder, self).default(obj)
 
     def encode(self, obj):
         result = super(CustomJSONEncoder, self).encode(self.no_indent_map(obj))

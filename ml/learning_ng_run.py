@@ -3,7 +3,8 @@ import glob
 import gzip
 import os
 
-from learning_ng import PretrainedClassifier as Classifier, safe_head, time_str
+from learning_ng import PretrainedClassifier as Classifier, safe_head, time_str, nest
+from catalog import CatalogManager, DummyCatalogManager
 
 default_data_location = safe_head(glob.glob(os.path.join(os.path.dirname(__file__), 'normalized.pkl.gz')))
 
@@ -38,7 +39,7 @@ class LearningRunner(object):
         self.cross_val_index = 0
         self.cross_val_test_data = None
         if test_run:
-            self.epochs = 1
+            self.epochs = 4
             self.batch_size = 1000
         else:
             self.epochs = epochs
@@ -54,6 +55,7 @@ class LearningRunner(object):
         self.gauss_sigma_factors = gauss_sigma_factors
         self.l1s = l1s
         self.l2s = l2s
+        self.cat = DummyCatalogManager if test_run else CatalogManager
 
     def run(self):
         while self.cross_val_index < len(self.cross_val_drops):
@@ -85,14 +87,15 @@ class LearningRunner(object):
                                     eo,
                                     None,
                                     None,
-                                    dr,
+                                    0.0,
                                     gbs,
                                     gsf,
                                     l1,
-                                    l2
+                                    l2,
+                                    self.cat
                                 )
                                 # TODO do something with max-layer-sizes here
-                                pc.new_encdecs(True, True, True)
+                                pc.new_encdecs(True, False, True)
                                 pc.pretrain()
                                 pc.cap_data()
                                 for (n,co) in enumerate(self.class_optimizers):
@@ -123,6 +126,9 @@ class LearningRunner(object):
                                         pc.model_name = current_name
                                         pc.cls_opt = co
                                         pc.cls_lss = cl
+                                        pc.drop_rate = dr
+                                        pc.sigma_base = 0.0
+                                        pc.sigma_fact = 1.0
                                         pc.new_model(False, True)
                                         history = pc.finetune()
                                         with gzip.open(os.path.join(os.path.dirname(default_data_location), current_name + '.history.pkl.gz'), 'wb') as f:
@@ -130,7 +136,7 @@ class LearningRunner(object):
                                         pc.catalog_manager.set({ 'finished': True,
                                                                  'test_accuracy': pc._model_info['test_accuracy'],
                                                                  'start_time': start_time,
-                                                                 'end_time': time_str }, self.model_name, ifxval + suffix)
+                                                                 'end_time': time_str() }, self.model_name, ifxval + suffix)
             self.cross_val_index += 1
 
     def split_data(self, xval = False, label_sel = 'phase', data_sel = 'raw'):
@@ -146,23 +152,23 @@ class LearningRunner(object):
 if __name__ == '__main__':
     runner = LearningRunner(
         data_location='./normalized.pkl.gz',
-        test_run=False,
+        test_run = False,
         cross_val = True,
         # Classifier-general
-        epochs = 100,
+        epochs = 1000,
         batch_size = 50,
         max_layer_sizes = 0,
-        encdecs_name = "runner-test",
-        model_name = "runner-test",
+        encdecs_name = "final-test-batch50",
+        model_name = "final-test-batch50",
         # Classifier-specific,
-        encdec_optimizers = ('adadelta',),
+        encdec_optimizers = ('rmsprop',),
         class_optimizers = ('adadelta',),
         class_losses = ('categorical_crossentropy',),
-        drop_rates = (0.0, 0.1),
-        gauss_base_sigmas = (0.1, 0.5, 0.0,),
-        gauss_sigma_factors = (1.0, 2.0),
-        l1s = (0.0, 0.01, 0.1),
-        l2s = (0.0, 0.01, 0.1)
+        drop_rates = (0.10,),
+        gauss_base_sigmas = (0.10,),
+        gauss_sigma_factors = (1.0,),
+        l1s = (0.0,),
+        l2s = (0.0,),
     )
     runner.run()
 

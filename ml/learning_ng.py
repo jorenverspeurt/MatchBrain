@@ -19,6 +19,7 @@ from keras.layers import noise
 from keras.models import Sequential
 from keras.regularizers import WeightRegularizer
 from keras.utils import np_utils
+from keras.optimizers import SGD
 from sklearn.cross_validation import train_test_split
 
 from catalog import CatalogManager
@@ -32,6 +33,18 @@ logging.basicConfig(level=logging.INFO)
 phase_names = ['DISTRACT', 'RELAXOPEN', 'RELAXCLOSED', 'CASUAL', 'INTENSE']
 
 time_str = lambda: dt.datetime.now().strftime('%y%m%d-%H%M%S')
+
+class nest(SGD):
+    def __init__(self, lr, momentum):
+        SGD.__init__(self, lr=lr, decay=1e-6, momentum=momentum, nesterov=True)
+        self._n_lr = lr
+        self._n_mo = momentum
+
+    def __str__(self):
+        return "nest"+str(self._n_lr)+"_"+str(self._n_mo)
+
+    def __repr__(self):
+        return "nest("+str(self._n_lr)+","+str(self._n_mo)+")"
 
 def mfy(name):
     return name and ("m-"+name if not name.startswith("m-") else name)
@@ -217,7 +230,7 @@ class PretrainedClassifier(object):
     def finetune(self,
                  name = None,
                  encdecs_name = "",
-                 early_stopping = {"monitor": "val_acc", "patience": 1000, "verbose": 1},
+                 early_stopping = {"monitor": "val_acc", "patience": 50, "verbose": 1},
                  test_data = None,
                  overwrite_best = True):
         """
@@ -271,9 +284,9 @@ class PretrainedClassifier(object):
     def new_encdecs(self, compile = True, use_dropout = None, use_noise = None):
         self.enc_decs = []
         if not use_dropout is None:
-            self.enc_use_drop = use_dropout
+            self.enc_use_drop = self.drop_rate > 0 and use_dropout
         if not use_noise is None:
-            self.enc_use_noise = use_noise
+            self.enc_use_noise = self.sigma_base > 0 and use_noise
         if self.l1 != 0 or self.l2 != 0:
             regularizer = WeightRegularizer(l1=self.l1, l2=self.l2)
         else:
@@ -304,9 +317,11 @@ class PretrainedClassifier(object):
         if self.enc_decs and not fresh:
             # The encoder may already have a noise and/or drop layer!
             # But we don't know what kind so replace them
-            for (i,enc) in enumerate(ae.layers[0].encoder.layers[0 if len(ae.layers[0].encoder.layers) == 0 else 1] for ae in self.enc_decs):
-                if self.sigma_base != 0:
-                    self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i], )))
+            # the if len... stuff only works if dropout isn't used for encdecs without gaussian
+            for (i,enc) in enumerate(layers[0 if len(layers) == 1 else 1] for ae in self.enc_decs for layers in (ae.layers[0].encoder.layers,)):
+                #if self.sigma_base != 0:
+                # Always add this even if 0 because the encdec might have had one
+                self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i], )))
                 self.model.add(enc)
                 if self.drop_rate != 0:
                     self.model.add(drop_cl(self.drop_rate))
