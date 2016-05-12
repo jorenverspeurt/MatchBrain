@@ -3,8 +3,8 @@ import glob
 import gzip
 import os
 
-from learning_ng import PretrainedClassifier as Classifier, safe_head, time_str, nest
-from catalog import CatalogManager, DummyCatalogManager
+from catalog import CatalogManager, DummyCatalogManager, named_catalog
+from learning_ng import PretrainedClassifier as Classifier, safe_head, time_str
 
 default_data_location = safe_head(glob.glob(os.path.join(os.path.dirname(__file__), 'normalized.pkl.gz')))
 
@@ -28,7 +28,8 @@ class LearningRunner(object):
                 ,gauss_base_sigmas = (0.0,)
                 ,gauss_sigma_factors = (1.0,)
                 ,l1s = (0.0,)
-                ,l2s = (0.0,) ):
+                ,l2s = (0.0,)
+		,catalog_name = "" ):
         self.data_location = data_location or default_data_location
         with gzip.open(data_location, 'rb') as f:
             self.data = cPickle.load(f)
@@ -55,7 +56,7 @@ class LearningRunner(object):
         self.gauss_sigma_factors = gauss_sigma_factors
         self.l1s = l1s
         self.l2s = l2s
-        self.cat = DummyCatalogManager if test_run else CatalogManager
+        self.cat = DummyCatalogManager if test_run else (named_catalog(catalog_name) if catalog_name else CatalogManager)
 
     def run(self):
         while self.cross_val_index < len(self.cross_val_drops):
@@ -158,17 +159,18 @@ if __name__ == '__main__':
         epochs = 1000,
         batch_size = 50,
         max_layer_sizes = 0,
-        encdecs_name = "final-test-batch50",
-        model_name = "final-test-batch50",
+        encdecs_name = "final-test-batch50-nogauss",
+        model_name = "final-test-batch50-nogauss",
         # Classifier-specific,
         encdec_optimizers = ('rmsprop',),
         class_optimizers = ('adadelta',),
         class_losses = ('categorical_crossentropy',),
         drop_rates = (0.10,),
-        gauss_base_sigmas = (0.10,),
+        gauss_base_sigmas = (0.00,),
         gauss_sigma_factors = (1.0,),
         l1s = (0.0,),
         l2s = (0.0,),
+	catalog_name = "batch50-nogauss"
     )
     runner.run()
 

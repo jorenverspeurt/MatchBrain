@@ -112,3 +112,8 @@ class CustomJSONEncoder(json.JSONEncoder):
             result = result.replace('"@@%s@@"' % (k,), v)
         return result
 
+def named_catalog(name):
+    class NamedCatalog(CatalogManager):
+        def __init__(self, _):
+            super(NamedCatalog, self).__init__(name)
+    return NamedCatalog
