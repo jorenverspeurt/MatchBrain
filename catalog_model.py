@@ -55,13 +55,49 @@ class AdrGettable(Nothingable):
             return o.getValue()
         # handle_* :: str -> F obj
         @curry
+        def handle_parens(cont, path):
+            # for example bla/(hey/foo)(bing/baz&biz)(*/buzz)/bing
+            # nested should work /bla/(hey/(foo/bar)(foe/bae))(...
+            if '(' in path:
+                def take_until_balanced(rem):
+                    open = 0
+                    closed = 0
+                    front = ""
+                    for c in rem:
+                        if c == '(':
+                            if open > 0:
+                                front = front + c
+                            open += 1
+                        elif c == ')':
+                            closed += 1
+                            if open > closed:
+                                front = front + c
+                        else:
+                            front = front + c
+                        if open == closed:
+                            break
+                    return front, rem[len(front)+2:]
+
+                front, remaining = path.split('(', 1)
+                subs = []
+                remaining = '('+remaining # whatevs
+                while remaining.startswith('('):
+                    sub, remaining = take_until_balanced(remaining)
+                    subs.append(sub)
+                fulls = map(lambda s: front+s+remaining, subs)
+                return getValue * handle_parens(cont) * List(*fulls) # prevent stacked functors
+            else:
+                return cont(path)
+
+        @curry
         def handle_slash(cont, path):
+            # perform a recursive get
             if '/' in path:
-                ht = []; ol = len(adrs)+1; nl = 0
-                # Keep splitting one / until we have either just a head or a head and a tail (so ///foo//bar works)
+                ht = []; ol = len(path)+1; nl = 0
+                # Keep splitting one '/' until we have either just a head or a head and a tail (so ///foo//bar works)
                 while len(ht) < 2 and (ol != nl):
                     ol = nl
-                    ht = filter(None, adrs.split('/', 1))
+                    ht = filter(None, path.split('/', 1))
                     nl = len(''.join(ht))
                 if len(ht) == 2:
                     @curry
@@ -82,6 +118,7 @@ class AdrGettable(Nothingable):
 
         @curry
         def handle_amp(cont, path):
+            # multiple selection
             if '&' in path:
                 selections = path.split('&')
                 return getValue * cont * List(*selections) # prevent stacked functors
@@ -97,6 +134,15 @@ class AdrGettable(Nothingable):
                 return cont(path)
 
         @curry
+        def handle_bang(cont, path):
+            # index operator
+            if '!' in path:
+                aname, index = path.split('!', 1)
+
+            else:
+                return cont(path)
+
+        @curry
         def handle_finally(path):
             if path == '':
                 return Just(self)
@@ -105,7 +151,7 @@ class AdrGettable(Nothingable):
             else:
                 return Nothing
 
-        result = handle_slash(handle_amp(handle_star(handle_finally)), adrs)
+        result = handle_parens(handle_slash(handle_amp(handle_star(handle_finally))), adrs)
         return result.getValue()
 
 
@@ -198,7 +244,7 @@ class Experiment(AdrGettable):
             self.traversables = ['cross_validation', 'settings', 'results', 'encdecs', 'models']
             ma = missing_attributes(summary, ['cross_validation', 'settings'])
             if ma:
-                raise ValueError(ma)
+                raise ValueError("In "+self.name+", "+ma)
             self.cross_validation = summary['cross_validation']
             self.settings = ExperimentSettings(name+"_settings", summary['settings'])
             self.results = ExperimentResults(name+"_results", {k: v for k, v in summary.iteritems() if k.startswith('-')}, self)
@@ -493,6 +539,37 @@ class Tester(object):
         return map(lambda t: t[1], sorted(self.done.iteritems()))
 
 
+def flatten(l, num=1):
+    if num == 0:
+        return l
+
+    new_l = []
+    for item in l:
+        if type(item) == type([]):
+            new_l.extend(flatten(item, num-1))
+        else:
+            new_l.append(item)
+    return new_l
+
+class Plotter(object):
+    def __init__(self, catalog):
+        self.catalog = catalog
+
+    def bar(self, groups = 1, x_data = None, x_path = None, y_data = None, y_paths = None, flatten_y = 0):
+        assert x_data or x_path and not (x_data and x_path)
+        assert y_data or y_paths and not (y_data and y_paths)
+        if x_data:
+            x = x_data
+        else:
+            x = flatten(map(self.catalog.get, x_paths), flatten_x)
+        if y_data:
+            y = y_data
+        else:
+            y = map(self.catalog.get, y_paths)
+            if len(y) == 1:
+                x = x[0]
+
+
 if __name__ == '__main__':
     # Test
     def tw(fun, name = "", eq = None, desired = None, message = None):
@@ -510,9 +587,9 @@ if __name__ == '__main__':
                 return Tester.Errored(e.message)
         return wrapped
 
-    with open('testcatalog.json', 'r') as f:
+    with open('catalog-merged-fixed.json', 'r') as f:
         catj = json.load(f)
-    et = ['runner-test', 'final-test-batch50']
+    et = ['final-test-batch50']
     cato = Catalog("test", catj)
     tester = Tester(cato)
     print("TESTS\n=====")
@@ -521,9 +598,9 @@ if __name__ == '__main__':
         do(1, tw(lambda er: er.get('cross_validation_started'), 'xvs', True, True), 0).\
         do(2, tw(lambda er: er.cross_validation_started, 'xvs2', True, True), 0).\
         do(3, tw(lambda c: c.get(et[0]+'/settings'))).\
-        do(4, tw(lambda es: es.get('drop_rates'), "drop_rates", True, [0, 0.1]), 3).\
+        do(4, tw(lambda es: es.get('drop_rates'), "drop_rates", True, [0.1]), 3).\
         do(5, tw(lambda es: es.drop_rates), 3).\
-        do(6, tw(lambda es: len(es.gauss_combs), "gauss_combs", True, 5), 3).\
+        do(6, tw(lambda es: len(es.gauss_combs), "gauss_combs", True, 1), 3).\
         do(7, tw(lambda es: es.name, "esname", True, et[0] + '_settings'), 3).\
         run()
     print(" "+" ".join(reduce(lambda old, new: old if len(old) and old[-1] == '\n' and new == '\n' else old+[new],
@@ -533,6 +610,7 @@ if __name__ == '__main__':
                                    for a in ([r] if len(unicode(r))==1 else ['\n',r,'\n'])]),
                               [])))
     print("\nRESULTS\n=======")
-    print(cato.get(et[1]+'/models/*/confusions/counts/INTENSE'))
-    print(cato.get(et[1]+'/models/*/confusions/condition_rates&prediction_rates/INTENSE'))
+    print(cato.get(et[0]+'/models/*/confusions/counts/INTENSE'))
+    print(cato.get(et[0]+'/models/*/confusions/condition_rates&prediction_rates/INTENSE'))
+    print(cato.get(et[0]+'/models/*/confusions/(condition_rates)(prediction_rates/INTENSE)'))
 
