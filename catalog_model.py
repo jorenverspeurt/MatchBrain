@@ -7,8 +7,15 @@ import re
 from datetime import datetime
 
 import numpy as np
+import plotly.graph_objs as gob
+import plotly.offline as ply
+from plotly import tools as plt
+from pymonad import Functor
 from pymonad.List import *
 from pymonad.Maybe import *
+
+notebook_mode = False
+notebook_mode_init = False
 
 iden = lambda x: x
 true = lambda _: True
@@ -37,6 +44,20 @@ class Nothingable(object):
 
     def __nonzero__(self):
         return not self.nothing
+
+
+class Averaging(Functor):
+    # Averages its value along the 0 axis when retrieving it
+    # This probably violates functor laws
+    def fmap(self, function):
+        # Pass along the fmap to whatever is inside
+        return Averaging(function * self.value)
+    def getValue(self):
+        res = self.value.getValue()
+        if res:
+            return list(np.mean(res, axis=0))
+        else:
+            return None
 
 
 class AdrGettable(Nothingable):
@@ -106,6 +127,8 @@ class AdrGettable(Nothingable):
                             return o.get(a)
                         elif hasattr(o, 'fmap'):
                             return rec_get(a) * o
+                        # elif isinstance(o, list):
+                        #     return o #HACK
                         else:
                             raise ValueError("Rec_get doesn't know what to do with this shit")
                     return rec_get(ht[1]) * cont(ht[0]) #fmap
@@ -128,8 +151,18 @@ class AdrGettable(Nothingable):
         @curry
         def handle_star(cont, path):
             # if the path to get is * then get the rest over all traversables
+            # TODO make this work like shell globbing (i.e. /models/final-test-*)
             if path == "*":
                 return getValue * cont * List(*self.traversables) # prevent stacked functors
+            else:
+                return cont(path)
+
+        @curry
+        def handle_percent(cont, path):
+            # like '*' but averages results, just for convenience, limited usefulness
+            # TODO see handle_star
+            if path == "%":
+                return getValue * cont * Averaging(List(*self.traversables))
             else:
                 return cont(path)
 
@@ -138,7 +171,7 @@ class AdrGettable(Nothingable):
             # index operator
             if '!' in path:
                 aname, index = path.split('!', 1)
-
+                # TODO
             else:
                 return cont(path)
 
@@ -151,7 +184,7 @@ class AdrGettable(Nothingable):
             else:
                 return Nothing
 
-        result = handle_parens(handle_slash(handle_amp(handle_star(handle_finally))), adrs)
+        result = handle_parens(handle_slash(handle_amp(handle_star(handle_percent(handle_finally)))), adrs)
         return result.getValue()
 
 
@@ -554,20 +587,63 @@ def flatten(l, num=1):
 class Plotter(object):
     def __init__(self, catalog):
         self.catalog = catalog
+        self.multi = False
+        self.multi_figure = None
+        self.multi_name = ""
 
-    def bar(self, groups = 1, x_data = None, x_path = None, y_data = None, y_paths = None, flatten_y = 0):
+    def multi(self, name = "", rows = 1, cols = 1):
+        self.multi = True
+        self.multi_figure = plt.make_subplots(rows=rows, cols=cols)
+        self.multi_name = name
+
+    def _handle_args(self, groups, x_data, x_path, y_data, y_paths, flatten_y):
         assert x_data or x_path and not (x_data and x_path)
         assert y_data or y_paths and not (y_data and y_paths)
         if x_data:
             x = x_data
         else:
-            x = flatten(map(self.catalog.get, x_paths), flatten_x)
+            x = self.catalog.get(x_path)
         if y_data:
             y = y_data
         else:
-            y = map(self.catalog.get, y_paths)
-            if len(y) == 1:
-                x = x[0]
+            y = flatten(map(self.catalog.get, y_paths), flatten_y)
+            while len(y) == 1 and isinstance(y[0], list):
+                y = y[0]
+        if len(y) != len(groups):
+            if len(y) == len(x)*len(groups):
+                y = [y[i: i+len(x)] for i in xrange(len(groups))]
+            else:
+                raise ValueError("Length of y doesn't match up! Expected "+str(len(groups))+" or "+str(len(x)*len(groups))+" but got "+str(len(y)))
+        return x, y
+
+    def _plot(self, grobby, filename, ignore_multi = False):
+        global notebook_mode, notebook_mode_init
+        if not self.multi and not ignore_multi:
+            if notebook_mode:
+                if not notebook_mode_init:
+                    ply.init_notebook_mode()
+                    notebook_mode_init = True
+                ply.iplot(grobby)
+            else:
+                ply.plot(grobby)
+        else:
+            if grobby == None:
+                self._plot(self.multi_figure, self.multi_name, ignore_multi=True)
+            else:
+                self.multi_figure.append_trace
+
+    def bar(self, fig_name, groups = (), x_data = None, x_path = None, y_data = None, y_paths = None, flatten_y = 0):
+        x, ys = self._handle_args(groups, x_data, x_path, y_data, y_paths, flatten_y)
+        traces = map(lambda (y, name): gob.Bar(x = x, y = y, name = name, orientation = 'v'),
+                     [(ys[i], groups[i]) for i in xrange(len(groups))])
+        if len(groups)>1:
+            layout = gob.Layout(barmode = 'group')
+        else:
+            layout = gob.Layout()
+        fig = gob.Figure(data=traces, layout=layout)
+        self._plot(fig, fig_name)
+
+
 
 
 if __name__ == '__main__':
@@ -613,4 +689,13 @@ if __name__ == '__main__':
     print(cato.get(et[0]+'/models/*/confusions/counts/INTENSE'))
     print(cato.get(et[0]+'/models/*/confusions/condition_rates&prediction_rates/INTENSE'))
     print(cato.get(et[0]+'/models/*/confusions/(condition_rates)(prediction_rates/INTENSE)'))
+    print(cato.get('final-test-batch50()(-nodrop)(-nogauss)/models/%/counts/INTENSE'))
+
+    print("\nPLOT\n====")
+    plotter = Plotter(cato)
+    for l in labels:
+        plotter.bar("Intense Comparison",
+                    groups=["batch50", "batch50-nodrop", "batch50-nogauss"],
+                    x_data=labels,
+                    y_paths=["final-test-batch50()(-nodrop)(-nogauss)/models/%/counts/"+l])
 
