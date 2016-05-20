@@ -2,15 +2,17 @@
 from __future__ import print_function
 
 import json
+import math
 import operator
 import re
 from datetime import datetime
+from pprint import pprint
 
 import numpy as np
+import pandas as pd
 import plotly.graph_objs as gob
 import plotly.offline as ply
 from plotly import tools as plt
-from pymonad import Functor
 from pymonad.List import *
 from pymonad.Maybe import *
 
@@ -186,9 +188,6 @@ class AdrGettable(Nothingable):
 
         result = handle_parens(handle_slash(handle_amp(handle_star(handle_percent(handle_finally)))), adrs)
         return result.getValue()
-
-
-
 
     # TODO add a "number of arguments" attribute and make this thing generic in that as well
     def bond(self, attr = None, transf = iden, cond = true):
@@ -409,6 +408,15 @@ class Model(AdrGettable):
             if ma:
                 raise ValueError(ma)
             self.traversables = ['classification', 'noise', 'pretraining', 'losses', 'counts', 'confusions']
+            self.xval_number = int(name[name.find('-x')+2])
+            def try_int(char):
+                try:
+                    int(char)
+                    return True
+                except Exception:
+                    return False
+
+            self.settings_number = filter(lambda ss: all(try_int(c) for c in ss), name.split("-"))[0]
             self.classification = AGD(self.name+'_class', {'optimizer': dct['class_optimizer'], 'loss': dct['class_loss']})
             self.noise = {'base_sigma': dct['gaussian_base_sigma'], 'sigma_factor': dct['gaussian_sigma_factor']}
             self.drop_rate = dct['drop_rate']
@@ -587,14 +595,6 @@ def flatten(l, num=1):
 class Plotter(object):
     def __init__(self, catalog):
         self.catalog = catalog
-        self.multi = False
-        self.multi_figure = None
-        self.multi_name = ""
-
-    def multi(self, name = "", rows = 1, cols = 1):
-        self.multi = True
-        self.multi_figure = plt.make_subplots(rows=rows, cols=cols)
-        self.multi_name = name
 
     def _handle_args(self, groups, x_data, x_path, y_data, y_paths, flatten_y):
         assert x_data or x_path and not (x_data and x_path)
@@ -616,32 +616,69 @@ class Plotter(object):
                 raise ValueError("Length of y doesn't match up! Expected "+str(len(groups))+" or "+str(len(x)*len(groups))+" but got "+str(len(y)))
         return x, y
 
-    def _plot(self, grobby, filename, ignore_multi = False):
+
+class PlyPlotter(Plotter):
+    def __init__(self, catalog):
+        super(PlyPlotter, self).__init__(catalog)
+        self.multi = False
+        self.multi_figures = []
+        self.multi_titles = []
+        self.multi_columns = 1
+        self.multi_name = ""
+
+    def start_multi(self, name = "", cols = 1):
+        self.multi = True
+        self.multi_name = name
+        self.multi_columns = cols
+
+    def _plot(self, grobby, filename):
         global notebook_mode, notebook_mode_init
-        if not self.multi and not ignore_multi:
-            if notebook_mode:
-                if not notebook_mode_init:
-                    ply.init_notebook_mode()
-                    notebook_mode_init = True
-                ply.iplot(grobby)
-            else:
-                ply.plot(grobby)
+        if notebook_mode:
+            if not notebook_mode_init:
+                ply.init_notebook_mode()
+                notebook_mode_init = True
+            ply.iplot(grobby)
         else:
-            if grobby == None:
-                self._plot(self.multi_figure, self.multi_name, ignore_multi=True)
-            else:
-                self.multi_figure.append_trace
+            ply.plot(grobby, filename=filename)
+
+    def _append(self, traces, name):
+        self.multi_figures.append(traces)
+        self.multi_titles.append(name)
 
     def bar(self, fig_name, groups = (), x_data = None, x_path = None, y_data = None, y_paths = None, flatten_y = 0):
         x, ys = self._handle_args(groups, x_data, x_path, y_data, y_paths, flatten_y)
         traces = map(lambda (y, name): gob.Bar(x = x, y = y, name = name, orientation = 'v'),
                      [(ys[i], groups[i]) for i in xrange(len(groups))])
         if len(groups)>1:
-            layout = gob.Layout(barmode = 'group')
+            layout = gob.Layout(barmode = 'group', title = fig_name)
         else:
-            layout = gob.Layout()
+            layout = gob.Layout(title = fig_name)
         fig = gob.Figure(data=traces, layout=layout)
-        self._plot(fig, fig_name)
+        if not self.multi:
+            self._plot(fig, fig_name)
+        else:
+            self._append(fig, fig_name)
+
+    def multi_plot(self, width = 2480, height = 3508):
+        # Print A4 in px: 2480x3508
+        rows = int(math.ceil(float(len(self.multi_figures))/self.multi_columns))
+        # Reminder: it's possible to make some figures span multiple columns, probably not going to use that though
+        figure = plt.make_subplots(rows=rows, cols=self.multi_columns, subplot_titles=self.multi_titles)
+        for i in xrange(len(self.multi_figures)):
+            figure.append_trace(self.multi_figures[i], (i%self.multi_columns)+1, (i%rows)+1)
+        figure['layout'].update(width=width, height=height, title=self.multi_name)
+        self._plot(figure, self.multi_name)
+
+class SeabornPlotter(Plotter):
+    def bar(self, fig_name, groups = (), x_data = None, x_path = None, y_data = None, y_paths = None, flatten_y = 0):
+        x, ys = self._handle_args(groups, x_data, x_path, y_data, y_paths, flatten_y)
+        df = pd.DataFrame()
+        for xi in x:
+            df[xi] = None
+
+    def simple_bar(self, runs, attribute):
+        models_path = sum(("("+run+")" for run in runs), "")+"/models/*"
+
 
 
 
@@ -690,12 +727,30 @@ if __name__ == '__main__':
     print(cato.get(et[0]+'/models/*/confusions/condition_rates&prediction_rates/INTENSE'))
     print(cato.get(et[0]+'/models/*/confusions/(condition_rates)(prediction_rates/INTENSE)'))
     print(cato.get('final-test-batch50()(-nodrop)(-nogauss)/models/%/counts/INTENSE'))
+    intense_comp = map(lambda e: map(list, list(e)), list(cato.get('final-test-batch50()(-nodrop)(-nogauss)/models/*/(noise/base_sigma)(drop_rate)(counts/INTENSE)')))
+    indices = flatten(map(list, list(cato.get('final-test-batch50()(-nodrop)(-nogauss)/models/*/name'))),3)
+    print(type(intense_comp))
+    pprint(intense_comp, width=200)
+    print(indices)
+    def r5(l):
+        return [i for i in l for _ in xrange(5)]
+    df_init_dict = dict(
+        label = labels*sum(l for e in intense_comp for l in map(len, e[2])),
+        count = [c[i] for e in intense_comp for c in e[2] for i in xrange(5)],
+        experiment = r5(["batch50"])*len(intense_comp[0][0])+r5(["batch50-nodrop"])*len(intense_comp[1][0])+r5(["batch50-nogauss"])*len(intense_comp[2][0]),
+        base_sigma = r5(intense_comp[0][0])+r5(intense_comp[0][0])+r5(intense_comp[0][0]),
+        drop_rate  = r5(intense_comp[0][1])+r5(intense_comp[1][1])+r5(intense_comp[2][1]),
+    )
+    df = pd.DataFrame(df_init_dict)
+
 
     print("\nPLOT\n====")
-    plotter = Plotter(cato)
-    for l in labels:
-        plotter.bar("Intense Comparison",
-                    groups=["batch50", "batch50-nodrop", "batch50-nogauss"],
-                    x_data=labels,
-                    y_paths=["final-test-batch50()(-nodrop)(-nogauss)/models/%/counts/"+l])
+    if False:
+        plotter = PlyPlotter(cato)
+        for l in labels:
+            plotter.bar("Intense Comparison",
+                        groups=["batch50", "batch50-nodrop", "batch50-nogauss"],
+                        x_data=labels,
+                        y_paths=["final-test-batch50()(-nodrop)(-nogauss)/models/%/counts/"+l])
+
 
