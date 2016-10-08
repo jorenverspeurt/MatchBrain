@@ -12,6 +12,8 @@ from signals.primitive import GenSource, SignalBlock, Transformer
 from processing import *
 
 phase_names = ['DISTRACT', 'RELAXOPEN', 'RELAXCLOSED', 'CASUAL', 'INTENSE']
+drop_seconds = 4
+shift = 16
 
 def interp_vals(val1, val2, index, total):
     return val1 + ( (val2-val1) * (index/total) )
@@ -75,6 +77,7 @@ def all_m_to_a():
     return with_msecs.keys()
 
 class LogSourceMaker(object):
+    """ The way the system used to work, this hooks into the whole signal system thing I built for the game code, not useful for learning """
     def __init__(self, clean_seconds = 3, logfolder = None, phases = None, cross_val = False):
         if logfolder:
             all_dict = loadall(logfolder=logfolder)
@@ -163,6 +166,7 @@ class LogSourceMaker(object):
         return block
 
 class NormSourceMaker(object):
+    """ An experiment, not really useful, keeping the code around for basically no reason """
     def __init__(self, datafolder = None, phases = None, cross_val = False):
         self.data = None
         if datafolder:
@@ -196,15 +200,105 @@ class NormSourceMaker(object):
         self.source.callback = block.stop
         return block
 
+# handle_data_entry :: ({"data": DEntry} -> bw or tr or None) or ({ other } -> None)
+#                      where bw = { "type": "brainwave", "raw": [int], "eSense": ...}
+#                            tr = { "type": "phase", "phase": phase }
+def handle_data_entry(de):
+    if "data" in de:
+        data = de["data"]
+        if "brainwave" in data \
+                and sum(data["brainwave"]["eSense"].itervalues()) != 0\
+                and data["brainwave"]["meta"]["contact"]:
+            bw = data["brainwave"]
+            return { "type": "brainwave"
+                   , "raw": bw["raw"]
+                   , "eSense": bw["eSense"]
+                   , "bands": bw["bands"]}
+        elif "train" in data:
+            return { "type": "phase"
+                   , "phase" : data["train"]["phase"] }
+        else:
+            return None # Include others as needed
+    else:
+        return None
+
+# change_drop :: (str, int, [bw]) -> (bw or tr) -> (str, int, [bw])
+def change_drop((cur_phase, count, data_acc), new_data):
+    if count > 0:
+        return (cur_phase, count - 1, data_acc)
+    elif new_data["type"] == "phase":
+        if new_data["phase"] == "NEWGAME":
+            return ("NEWGAME", 1e10, data_acc) # Ignore newgame data for now
+        else:
+            return (new_data["phase"], drop_seconds, data_acc)
+    elif new_data["type"] == "brainwave":
+        # Ugh, imperative rubbish, but hey, it saves some memory I guess
+        new_data["phase"] = cur_phase
+        data_acc.append(new_data)
+        return (cur_phase, count, data_acc)
+    else:
+        # Let's find out which case I'm not covering here...
+        # Should be none for now
+        print(new_data)
+
+# Shift windows
+def smart_shift(cur, nex, shift):
+    def handle(vcur, vnex, index):
+        if isinstance(vcur,list):
+            return interp_ls(vcur, vnex, index)
+        elif isinstance(vcur,int) or isinstance(vcur,float):
+            return interp_vals(vcur, vnex, index, 512)
+        elif isinstance(vcur,dict):
+            return {k: handle(vcur[k], vnex[k], index) for k in vcur.iterkeys()}
+        else:
+            return vcur
+    return [handle(cur, nex, i) for i in xrange(0, 512, shift)]
+
+# Needed stats for normalization: mean and standard deviation
+# statd :: array -> {"mean": array, "std": array, 'n': int}
+def statd(arr): 
+    return { 'mean': np.mean(arr, axis = 0)
+           , 'std': np.std(arr, axis = 0)
+           , 'n': len(arr) }
+
+# getstats :: {"raw" or "bands" or "eSense" : ... } -> [("raw", ...->list) or ("bands", ...) or ...]
+# -> {"raw" or ... : {"mean": array, "std": array, "n": int}}
+def getstats(res, l_cat_f):
+    return { cat: statd([f(e[cat])
+                         for (fname, fc) in res.iteritems()
+                         for e in fc])
+             for (cat, f) in l_cat_f }
+
+def dict_without(dic, keys):
+    return { k: v if not isinstance(v, dict) else dict_without(v, keys) for (k, v) in dic.iteritems() if not k in keys }
+
+def normalized_by(scaled, scaling):
+    def dict_aware_norm(value, mean, std):
+        if isinstance(value, dict):
+            return { k: (v-mean)/std for (k,v) in value.iteritems() }
+        else:
+            return (value-mean)/std
+
+    return [ { k: dict_aware_norm(v, scaling[k]['mean'], scaling[k]['std']) if k in scaling else v
+               for (k,v) in e.iteritems()
+               if not k == 'type' } #Useless to keep this, it's all 'brainwave' at this point
+             for e in scaled ]
+
+# A way to get the values out of a dictionary sorted by their key name alphabetically (so it's deterministic)
+# detvalues :: dict -> list
+def detvalues(d):
+    return [d[k] for k in sorted(d.iterkeys())]
+
+def pname_for(f): 
+    return ''.join(takewhile(lambda c: c!='2', f)).split('/')[-1]
 
 if __name__ == '__main__':
     """
     Process all current logs into a single file
     Keep only needed data, perform preprocessing transforms
     Compute necessary statistics
+    This should have been a Jupyter Notebook, why I chose to do it this way is beyond me now...
     """
-    drop_seconds = 4
-    shift = 16
     ###
     # type DEntry = { "brainwave": { "eSense": {"meditation": int, "attention": int}
     #                                          , "raw": [int]
@@ -233,71 +327,17 @@ if __name__ == '__main__':
     print('loaded')
     np.set_printoptions(precision=3, suppress=True)
 
-    # handle_data_entry :: ({"data": DEntry} -> bw or tr or None) or ({ other } -> None)
-    #                      where bw = { "type": "brainwave", "raw": [int], "eSense": ...}
-    #                            tr = { "type": "phase", "phase": phase }
-    def handle_data_entry(de):
-        if "data" in de:
-            data = de["data"]
-            if "brainwave" in data \
-                    and sum(data["brainwave"]["eSense"].itervalues()) != 0\
-                    and data["brainwave"]["meta"]["contact"]:
-                bw = data["brainwave"]
-                return { "type": "brainwave"
-                       , "raw": bw["raw"]
-                       , "eSense": bw["eSense"]
-                       , "bands": bw["bands"]}
-            elif "train" in data:
-                return { "type": "phase"
-                       , "phase" : data["train"]["phase"] }
-            else:
-                return None # Include others as needed
-        else:
-            return None
-
     # (filter(None, ...) removes Nones and other falsies)
     result = { fname: filter(None, map(handle_data_entry, fc))
                for (fname, fc) in all_logs.iteritems() }
     # result: { filename: [bw or tr] }
     print('handled data entries')
 
-    # change_drop :: (str, int, [bw]) -> (bw or tr) -> (str, int, [bw])
-    def change_drop((cur_phase, count, data_acc), new_data):
-        if count > 0:
-            return (cur_phase, count - 1, data_acc)
-        elif new_data["type"] == "phase":
-            if new_data["phase"] == "NEWGAME":
-                return ("NEWGAME", 1e10, data_acc) # Ignore newgame data for now
-            else:
-                return (new_data["phase"], drop_seconds, data_acc)
-        elif new_data["type"] == "brainwave":
-            # Ugh, imperative rubbish, but hey, it saves some memory I guess
-            new_data["phase"] = cur_phase
-            data_acc.append(new_data)
-            return (cur_phase, count, data_acc)
-        else:
-            # Let's find out which case I'm not covering here...
-            # Should be none for now
-            print(new_data)
-
     # Go over the data, dropping what needs to be dropped
     # result :: { filename: [bw] }
     result = { fname: reduce(change_drop, fc, (phase_names[0], drop_seconds, []))[2]
                for (fname, fc) in result.iteritems() }
     print('dropped unnecessaries')
-
-    # Shift windows
-    def smart_shift(cur, nex, shift):
-        def handle(vcur, vnex, index):
-            if isinstance(vcur,list):
-                return interp_ls(vcur, vnex, index)
-            elif isinstance(vcur,int) or isinstance(vcur,float):
-                return interp_vals(vcur, vnex, index, 512)
-            elif isinstance(vcur,dict):
-                return {k: handle(vcur[k], vnex[k], index) for k in vcur.iterkeys()}
-            else:
-                return vcur
-        return [handle(cur, nex, i) for i in xrange(0, 512, shift)]
 
     result = { fname: [e
                        for l in map(lambda c,n: smart_shift(c, n, shift)
@@ -316,32 +356,13 @@ if __name__ == '__main__':
                for (fname, fc) in result.iteritems() }
     print('preprocessed')
 
-    # Needed stats for normalization: mean and standard deviation
-    # statd :: array -> {"mean": array, "std": array, 'n': int}
-    statd = lambda arr: {
-        'mean': np.mean(arr, axis = 0),
-        'std': np.std(arr, axis = 0),
-        'n': len(arr)
-    }
-    # A way to get the values out of a dictionary sorted by their key name alphabetically (so it's deterministic)
-    # detvalues :: dict -> list
-    detvalues = lambda d: [d[k] for k in sorted(d.iterkeys())]
     # Ways of coercing collections of integer brainwave records into lists
     nfs = [('raw', list), ('bands', detvalues), ('eSense', detvalues)]
-
-    # getstats :: {"raw" or "bands" or "eSense" : ... } -> [("raw", ...->list) or ("bands", ...) or ...]
-    # -> {"raw" or ... : {"mean": array, "std": array, "n": int}}
-    def getstats(res, l_cat_f):
-        return { cat: statd([f(e[cat])
-                             for (fname, fc) in res.iteritems()
-                             for e in fc])
-                 for (cat, f) in l_cat_f }
 
     allstats = getstats(result, nfs)
     print('allstats')
     # Group sessions per player
     # Keep both the original preproc data and averages in the new result
-    pname_for = lambda f: ''.join(takewhile(lambda c: c!='2', f)).split('/')[-1]
     pnames = { pname_for(fname) for fname in result.iterkeys() }
     perplayer = { pname: sum(((fc if isinstance(fc,list) else [fc])
                              for (fname, fc) in result.iteritems()
@@ -363,19 +384,6 @@ if __name__ == '__main__':
     with gzip.open('unscaled.pkl.gz','wb') as f:
         cPickle.dump(result, f, 2)
     print('wrote unscaled')
-    def dict_without(dic, keys):
-        return { k: v if not isinstance(v, dict) else dict_without(v, keys) for (k, v) in dic.iteritems() if not k in keys }
-    def normalized_by(scaled, scaling):
-        def dict_aware_norm(value, mean, std):
-            if isinstance(value, dict):
-                return { k: (v-mean)/std for (k,v) in value.iteritems() }
-            else:
-                return (value-mean)/std
-
-        return [ { k: dict_aware_norm(v, scaling[k]['mean'], scaling[k]['std']) if k in scaling else v
-                   for (k,v) in e.iteritems()
-                   if not k == 'type' } #Useless to keep this, it's all 'brainwave' at this point
-                 for e in scaled ]
 
     scaled = { pname: normalized_by(fe['data'], result['stats'])
                for (pname, pe) in result['players'].iteritems()

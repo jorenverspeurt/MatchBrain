@@ -1,7 +1,8 @@
 import cPickle
 import glob
 import gzip
-import os
+import os, sys
+import json
 
 from catalog import CatalogManager, DummyCatalogManager, named_catalog
 from learning_ng import PretrainedClassifier as Classifier, safe_head, time_str
@@ -11,17 +12,17 @@ default_data_location = safe_head(glob.glob(os.path.join(os.path.dirname(__file_
 class LearningRunner(object):
     def __init__(self
                 # Runner-general
-                ,data_location = None
+                ,data_location = './normalized.pkl.gz'
                 ,test_run = False
                 ,cross_val = True
                 # Classifier-general
-                ,epochs = 300000
-                ,batch_size = 50
+                ,epochs = 1000
+                ,batch_size = 100
                 ,max_layer_sizes = 0
                 ,encdecs_name = ""
                 ,model_name = ""
                 # Classifier-specific
-                ,encdec_optimizers = ('adadelta',)
+                ,encdec_optimizers = ('rmsprop',)
                 ,class_optimizers = ('adadelta',)
                 ,class_losses = ('categorical_crossentropy',)
                 ,drop_rates = (0.0,)
@@ -29,7 +30,12 @@ class LearningRunner(object):
                 ,gauss_sigma_factors = (1.0,)
                 ,l1s = (0.0,)
                 ,l2s = (0.0,)
-		,catalog_name = "" ):
+                ,enc_use_drop = False
+                ,enc_use_noise = True
+                ,mod_use_drop = True
+                ,mod_use_noise = False
+                ,catalog_name = ""
+                ,starting_index = 0):
         self.data_location = data_location or default_data_location
         with gzip.open(data_location, 'rb') as f:
             self.data = cPickle.load(f)
@@ -37,25 +43,29 @@ class LearningRunner(object):
             self.cross_val_drops = list(self.data.keys()) if cross_val else []
         else:
             self.cross_val_drops = []
-        self.cross_val_index = 0
+        self.cross_val_index = starting_index if cross_val else -1
         self.cross_val_test_data = None
         if test_run:
             self.epochs = 4
             self.batch_size = 1000
         else:
-            self.epochs = epochs
-            self.batch_size = batch_size
-        self.max_layer_sizes = max_layer_sizes
-        self.encdecs_name = encdecs_name
-        self.model_name = model_name
-        self.encdec_optimizers = encdec_optimizers
-        self.class_optimizers = class_optimizers
-        self.class_losses = class_losses
-        self.drop_rates = drop_rates
-        self.gauss_base_sigmas = gauss_base_sigmas
-        self.gauss_sigma_factors = gauss_sigma_factors
-        self.l1s = l1s
-        self.l2s = l2s
+            self.epochs = int(epochs)
+            self.batch_size = int(batch_size)
+        self.max_layer_sizes = int(max_layer_sizes)
+        self.encdecs_name = str(encdecs_name) or str(model_name) or time_str()
+        self.model_name = str(model_name) or str(encdecs_name) or time_str()
+        self.encdec_optimizers = map(str, encdec_optimizers)
+        self.class_optimizers = map(str, class_optimizers)
+        self.class_losses = map(str, class_losses)
+        self.drop_rates = map(float, drop_rates)
+        self.gauss_base_sigmas = map(float, gauss_base_sigmas)
+        self.gauss_sigma_factors = map(float, gauss_sigma_factors)
+        self.l1s = map(float, l1s)
+        self.l2s = map(float, l2s)
+        self.enc_use_drop = bool(enc_use_drop)
+        self.enc_use_noise = bool(enc_use_noise)
+        self.mod_use_drop = bool(mod_use_drop)
+        self.mod_use_noise = bool(mod_use_noise)
         self.cat = DummyCatalogManager if test_run else (named_catalog(catalog_name) if catalog_name else CatalogManager)
 
     def run(self):
@@ -78,25 +88,29 @@ class LearningRunner(object):
                                 current_name = self.model_name + ifxval + ("-%s%s%s%s" % (j,k,l,m))
                                 enc_name = self.encdecs_name + ifxval + ("-%s%s%s%s%s" % (i,j,k,l,m))
                                 pc = Classifier(
-                                    data,
-                                    labels,
-                                    self.batch_size,
-                                    self.epochs,
-                                    current_name,
-                                    "",
-                                    enc_name,
-                                    eo,
-                                    None,
-                                    None,
-                                    0.0,
-                                    gbs,
-                                    gsf,
-                                    l1,
-                                    l2,
-                                    self.cat
+                                    data = data,
+                                    labels = labels,
+                                    batch_size = self.batch_size,
+                                    epochs = self.epochs,
+                                    model_name = current_name,
+                                    model_dir = "",
+                                    encdecs_name = enc_name,
+                                    encdec_optimizer = eo,
+                                    # Not used for now, set later
+                                    class_optimizer = None,
+                                    # idem
+                                    class_loss = None,
+                                    drop_rate = dr,
+                                    gauss_base_sigma = gbs,
+                                    gauss_sigma_factor = gsf,
+                                    l1 = l1,
+                                    l2 = l2,
+                                    catalog_class = self.cat
                                 )
                                 # TODO do something with max-layer-sizes here
-                                pc.new_encdecs(True, False, True)
+                                pc.new_encdecs(compile = True,
+                                               use_dropout = self.enc_use_drop,
+                                               use_noise = self.enc_use_noise)
                                 pc.pretrain()
                                 pc.cap_data()
                                 for (n,co) in enumerate(self.class_optimizers):
@@ -111,13 +125,13 @@ class LearningRunner(object):
                                                 'index_reached': self.cross_val_index
                                             },
                                             'settings': {
-                                                '%s-eo'%i: self.encdec_optimizers,
-                                                '%s-dr'%j: self.drop_rates,
-                                                '%s-(gbs,gsf)'%k: gauss_combs,
-                                                '%s-l1s'%l: self.l1s,
-                                                '%s-l2s'%m: self.l2s,
-                                                '%s-co'%n: self.class_optimizers,
-                                                '%s-cl'%o: self.class_losses
+                                                '0-eo': self.encdec_optimizers,
+                                                '1-dr': self.drop_rates,
+                                                '2-(gbs,gsf)': gauss_combs,
+                                                '3-l1s': self.l1s,
+                                                '4-l2s': self.l2s,
+                                                '5-co': self.class_optimizers,
+                                                '6-cl': self.class_losses
                                             },
                                             ifxval + suffix: {
                                                 'finished': False,
@@ -127,10 +141,10 @@ class LearningRunner(object):
                                         pc.model_name = current_name
                                         pc.cls_opt = co
                                         pc.cls_lss = cl
-                                        pc.drop_rate = dr
-                                        pc.sigma_base = 0.0
-                                        pc.sigma_fact = 1.0
-                                        pc.new_model(False, True)
+                                        pc.new_model(fresh = False,
+                                                     compile = True,
+                                                     use_dropout = self.mod_use_drop,
+                                                     use_noise = self.mod_use_noise)
                                         history = pc.finetune()
                                         with gzip.open(os.path.join(os.path.dirname(default_data_location), current_name + '.history.pkl.gz'), 'wb') as f:
                                             cPickle.dump(history, f, 2)
@@ -151,27 +165,47 @@ class LearningRunner(object):
         return zip(*unsplit)
 
 if __name__ == '__main__':
-    runner = LearningRunner(
-        data_location='./normalized.pkl.gz',
-        test_run = False,
-        cross_val = True,
-        # Classifier-general
-        epochs = 1000,
-        batch_size = 50,
-        max_layer_sizes = 0,
-        encdecs_name = "final-test-batch50-nogauss",
-        model_name = "final-test-batch50-nogauss",
-        # Classifier-specific,
-        encdec_optimizers = ('rmsprop',),
-        class_optimizers = ('adadelta',),
-        class_losses = ('categorical_crossentropy',),
-        drop_rates = (0.10,),
-        gauss_base_sigmas = (0.00,),
-        gauss_sigma_factors = (1.0,),
-        l1s = (0.0,),
-        l2s = (0.0,),
-	catalog_name = "batch50-nogauss"
-    )
-    runner.run()
+    runner = None
+    if len(sys.argv) <= 1:
+        runner = LearningRunner(
+            data_location='./normalized.pkl.gz',
+            test_run = False,
+            cross_val = True,
+            # Classifier-general
+            epochs = 500,
+            batch_size = 100,
+            max_layer_sizes = 0,
+            encdecs_name = "final-test-short-2",
+            model_name = "final-test-short-2",
+            # Classifier-specific,
+            encdec_optimizers = ('rmsprop',),
+            class_optimizers = ('adadelta',),
+            class_losses = ('categorical_crossentropy',),
+            drop_rates = (0.10,),
+            gauss_base_sigmas = (0.10,),
+            gauss_sigma_factors = (1.0,),
+            l1s = (0.0,),
+            l2s = (0.0,),
+            catalog_name = "short-2"
+        )
+        print("Default runner made")
+    else:
+        try:
+            location = safe_head(glob.glob(os.path.join(os.path.dirname(__file__), sys.argv[1])))
+            print("Loading settings from "+location)
+            with open(location, 'r') as f:
+                settings = json.loads(f.read())
+            the_name = location.split('/')[-1].replace('.settings', '').replace('.json', '')
+            if (not "encdecs_name" in settings) and (not "model_name" in settings):
+                settings["encdecs_name"] = "final-test-"+the_name
+                settings["model_name"] = "final-test-"+the_name
+            if (not "catalog_name" in settings) or ("catalog_name" in settings and not settings["catalog_name"]):
+                settings["catalog_name"] = the_name+".json"
+            runner = LearningRunner(**{str(k): v for k,v in settings.iteritems()})
+            print("Runner made")
+        except Exception as e:
+            print(e)
+    if not runner is None:
+        runner.run()
 
 

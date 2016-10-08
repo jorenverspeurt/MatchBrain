@@ -104,7 +104,7 @@ class MessageLayer(Layer):
                              font_name=f.default,
                              anchor_y='center',
                              anchor_x='center',
-                             halign='center',
+                             align='center',
                              multiline=True,
                              width=w)
         self.msg.position = (w // 2.0, h)

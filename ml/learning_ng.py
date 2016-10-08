@@ -118,18 +118,18 @@ class History(Callback):
         self.batch_accs = []
 
 def safe_head(l):
-    return l[0] if l else None
+    return l[0] if l and len(l) > 0 else None
 
 class PretrainedClassifier(object):
     def __init__( self
                 , data
                 , labels
-                , batch_size = 50
-                , epochs = 300
-                , model_name = ""
-                , model_dir = ""
-                , encdecs_name = ""
-                , encdec_optimizer = 'adadelta'
+                , batch_size = 100
+                , epochs = 1000
+                , model_name = ''
+                , model_dir = ''
+                , encdecs_name = ''
+                , encdec_optimizer = 'rmsprop'
                 , class_optimizer = 'adadelta'
                 , class_loss = 'categorical_crossentropy'
                 , drop_rate = 0.0
@@ -163,6 +163,8 @@ class PretrainedClassifier(object):
         self.sigma_fact = gauss_sigma_factor
         self.enc_use_drop = False
         self.enc_use_noise = False
+        self.mod_use_drop = False
+        self.mod_use_noise = False
         self.l1 = l1
         self.l2 = l2
         self._model_name = model_name or (""
@@ -307,8 +309,12 @@ class PretrainedClassifier(object):
                 ae.compile(loss='mse', optimizer=self.enc_opt)
             self.enc_decs.append(ae)
 
-    def new_model(self, fresh = False, compile = True):
+    def new_model(self, fresh = False, compile = True, use_dropout = None, use_noise = None):
         self.model = Sequential()
+        if not use_dropout is None:
+            self.mod_use_drop = self.drop_rate > 0 and use_dropout
+        if not use_noise is None:
+            self.mod_use_noise = self.sigma_base > 0 and use_noise
         drop_cl = core.Dropout
         if self.l1 != 0 or self.l2 != 0:
             regularizer = WeightRegularizer(l1=self.l1, l2=self.l2)
@@ -323,14 +329,14 @@ class PretrainedClassifier(object):
                 # Always add this even if 0 because the encdec might have had one
                 self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i], )))
                 self.model.add(enc)
-                if self.drop_rate != 0:
+                if self.drop_rate > 0 and self.mod_use_drop:
                     self.model.add(drop_cl(self.drop_rate))
         else:
             for (i,(n_in, n_out)) in enumerate(zip(self.layer_sizes[:-1], self.layer_sizes[1:])):
-                if self.sigma_base != 0:
+                if self.sigma_base > 0 and self.mod_use_noise:
                     self.model.add(noise.GaussianNoise(self.sigma_base*(self.sigma_fact**-i), input_shape=(self.layer_sizes[i], )))
                 self.model.add(core.Dense(input_dim=n_in, output_dim=n_out, activation='sigmoid', W_regularizer=regularizer))
-                if self.drop_rate != 0:
+                if self.drop_rate > 0 and self.mod_use_drop:
                     self.model.add(drop_cl(self.drop_rate, input_shape=(n_in,)))
                 #TODO ?
         self.model.add(core.Dense(input_dim=self.layer_sizes[-1]
@@ -457,6 +463,7 @@ class PretrainedClassifier(object):
             self.evaluate_encdecs(eval_data)
         info = {
             "epochs": self.epochs,
+            "batch_size": self.batch_size,
             "layer_sizes": self.layer_sizes,
             "encdec_optimizer": self.enc_opt,
             "enc_use_drop": self.enc_use_drop,
@@ -475,10 +482,13 @@ class PretrainedClassifier(object):
             self.evaluate_model()
         info = {
             "epochs": self.epochs,
+            "batch_size": self.batch_size,
             "layer_sizes": self.layer_sizes,
             "class_optimizer": self.cls_opt,
             "class_loss": self.cls_lss,
+            "mod_use_drop": self.mod_use_drop,
             "drop_rate": self.drop_rate,
+            "mod_use_noise": self.mod_use_noise,
             "gaussian_base_sigma": self.sigma_base,
             "gaussian_sigma_factor": self.sigma_fact,
             "l1": self.l1,

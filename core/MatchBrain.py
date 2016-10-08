@@ -63,9 +63,9 @@ if __name__ == '__main__':
                     print(string)
             dataLogger = LogMock()
             bwSource = Source(lambda: [random.random()*4096-2048 for i in xrange(512)])
-        prep = Preprocessing(bwSource)
-        ae = AutoTransformer(prep.output_dim, prep, ph_source, batch_size=1, num_sizes=5, epochs=15, model_name=nickname)
-        ae.load_encdecs("o-adadelta-dr-0.001-gbs-0.001-gsf-2-l1-0-l2-0.001")
+        # prep = Preprocessing(bwSource)
+        # ae = AutoTransformer(prep.output_dim, prep, ph_source, batch_size=1, num_sizes=5, epochs=15, model_name=nickname)
+        # ae.load_encdecs("o-adadelta-dr-0.001-gbs-0.001-gsf-2-l1-0-l2-0.001")
         bwSink = Sink([bwSource], logging.getLogger('data.brainwave').info)
         def bwUpdate(sources, sink, seconds):
             dataLogger.debug('before internal')

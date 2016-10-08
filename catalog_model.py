@@ -10,11 +10,18 @@ from pprint import pprint
 
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
+import matplotlib.pyplot as mpp
+import seaborn as sns
+
 import plotly.graph_objs as gob
 import plotly.offline as ply
 from plotly import tools as plt
 from pymonad.List import *
 from pymonad.Maybe import *
+
+sns.set(style="whitegrid")
+sns.set_palette('bright')
 
 notebook_mode = False
 notebook_mode_init = False
@@ -32,6 +39,10 @@ def missing_attributes(dct, names):
         return ", ".join(missing)+" were not found in "+str({str(k): Ell() for k in dct.iterkeys()})
     else:
         return ""
+
+class MyList(List):
+    def getValue(self):
+        return list(self)
 
 class Ell(object):
     def __str__(self):
@@ -108,7 +119,7 @@ class AdrGettable(Nothingable):
                     sub, remaining = take_until_balanced(remaining)
                     subs.append(sub)
                 fulls = map(lambda s: front+s+remaining, subs)
-                return getValue * handle_parens(cont) * List(*fulls) # prevent stacked functors
+                return getValue * handle_parens(cont) * MyList(*fulls) # prevent stacked functors
             else:
                 return cont(path)
 
@@ -146,7 +157,7 @@ class AdrGettable(Nothingable):
             # multiple selection
             if '&' in path:
                 selections = path.split('&')
-                return getValue * cont * List(*selections) # prevent stacked functors
+                return getValue * cont * MyList(*selections) # prevent stacked functors
             else:
                 return cont(path)
 
@@ -155,7 +166,7 @@ class AdrGettable(Nothingable):
             # if the path to get is * then get the rest over all traversables
             # TODO make this work like shell globbing (i.e. /models/final-test-*)
             if path == "*":
-                return getValue * cont * List(*self.traversables) # prevent stacked functors
+                return getValue * cont * MyList(*list(sorted(self.traversables))) # prevent stacked functors
             else:
                 return cont(path)
 
@@ -164,7 +175,7 @@ class AdrGettable(Nothingable):
             # like '*' but averages results, just for convenience, limited usefulness
             # TODO see handle_star
             if path == "%":
-                return getValue * cont * Averaging(List(*self.traversables))
+                return getValue * cont * Averaging(MyList(*self.traversables))
             else:
                 return cont(path)
 
@@ -172,8 +183,16 @@ class AdrGettable(Nothingable):
         def handle_bang(cont, path):
             # index operator
             if '!' in path:
-                aname, index = path.split('!', 1)
-                # TODO
+                dexes = path.split('!') # Only safe if this is really late in the chain!
+                aname, indexes = dexes[0], map(int, dexes[1:])
+                result = cont(path)
+                @curry
+                def safe_index(i, l):
+                    if isinstance(l, list) and len(l) > 0:
+                        return Just(l[i])
+                    else:
+                        return Nothing
+                return reduce(lambda r, i: r >> safe_index(i), indexes, Just(result))
             else:
                 return cont(path)
 
@@ -400,6 +419,20 @@ class ExperimentResults(AdrGettable):
 
 class Model(AdrGettable):
     default_attr = 'accuracy'
+    dataframe_columns = ['model_name', 'label', 'training_set_size' # per-model values
+                        ,'epochs', 'class_optimizer', 'class_loss'
+                        ,'noise_base_sigma', 'noise_sigma_factor' ,'drop_rate'
+                        ,'pretraining_duration'
+                        ,'l1_normalization', 'l2_normalization'
+                        ,'test_accuracy', 'test_loss' ] + \
+                        [l+'_'+s # per-label values
+                         for s in ['loss', 'accuracy'
+                                  ,'recall', 'miss_rate', 'fallout', 'specificity'
+                                  ,'precision', 'false_omission', 'false_discovery', 'npv']
+                         for l in labels] + \
+                        [l_from+'_predicted_'+l_to # cross-label values
+                         for l_from in labels
+                         for l_to in labels]
 
     def __init__(self, name, dct, copy_dct=None, nothing=False):
         super(Model, self).__init__(name, dct, copy_dct, nothing)
@@ -424,12 +457,14 @@ class Model(AdrGettable):
             self.pretraining = AGD(self.name+'_pretraining',
                                    {'start': datetime.strptime(dct['pretrain_start_time'], time_str_format)
                                    ,'end':   datetime.strptime(dct['pretrain_end_time'], time_str_format)})
+            self.pretraining_duration = (self.pretraining['end']-self.pretraining['start']).seconds
             self.epochs = dct['epochs']
             self.normalization = AGD(self.name+'_normalization', {'l1': dct['l1'], 'l2': dct['l2']})
             self.accuracy = dct['test_accuracy']
             self.loss = dct['test_loss']
             self.losses = AGD(self.name+'_losses', {k: v['loss'] for k,v in dct['labels'].iteritems()})
             self.counts = AGD(self.name+'_counts', {k: v['counts'] for k,v in dct['labels'].iteritems()})
+            self.train_size = sum(l for v in self.counts.get('*') for l in v)
             c = lambda x,y: self.counts[x][y]
             li = lambda k: labels.index(k)
             lr = lambda: xrange(len(labels))
@@ -443,17 +478,53 @@ class Model(AdrGettable):
             pzd = lambda n: 1 if n == 0 else n
             self.confusions = AGD(self.name+'_confusions',
                                   {'counts': cc
-                                  ,'condition_rates':  {k: [float(cc[k][0])/pzd(cc[k][0]+cc[k][1])
-                                                           ,float(cc[k][1])/pzd(cc[k][1]+cc[k][0])
-                                                           ,float(cc[k][2])/pzd(cc[k][2]+cc[k][3])
-                                                           ,float(cc[k][3])/pzd(cc[k][3]+cc[k][2])]
-                                                        for k in labels}
-                                  ,'prediction_rates': {k: [float(cc[k][0])/pzd(cc[k][0]+cc[k][2])
-                                                           ,float(cc[k][1])/pzd(cc[k][1]+cc[k][3])
-                                                           ,float(cc[k][2])/pzd(cc[k][2]+cc[k][0])
-                                                           ,float(cc[k][3])/pzd(cc[k][3]+cc[k][1])]
-                                                        for k in labels}
+                                  ,'condition_rates':  AGD(
+                                      self.name+'_condition_rates',
+                                      {k: [float(cc[k][0])/pzd(cc[k][0]+cc[k][1])
+                                          ,float(cc[k][1])/pzd(cc[k][1]+cc[k][0])
+                                          ,float(cc[k][2])/pzd(cc[k][2]+cc[k][3])
+                                          ,float(cc[k][3])/pzd(cc[k][3]+cc[k][2])]
+                                       for k in labels})
+                                  ,'prediction_rates': AGD(
+                                      self.name+'_prediction_rates',
+                                      {k: [float(cc[k][0])/pzd(cc[k][0]+cc[k][2])
+                                          ,float(cc[k][1])/pzd(cc[k][1]+cc[k][3])
+                                          ,float(cc[k][2])/pzd(cc[k][2]+cc[k][0])
+                                          ,float(cc[k][3])/pzd(cc[k][3]+cc[k][1])]
+                                       for k in labels})
                                   })
+
+    def to_row(self):
+        row = {
+            'model_name': self.name, 'training_set_size': self.train_size, 'epochs': self.epochs,
+            'class_optimizer': self.classification['optimizer'], 'class_loss': self.classification['loss'],
+            'noise_base_sigma': self.noise['base_sigma'], 'noise_sigma_factor': self.noise['sigma_factor'],
+            'drop_rate': self.drop_rate, 'pretraining_duration': self.pretraining_duration,
+            'l1_normalization': self.normalization['l1'], 'l2_normalization': self.normalization['l2'],
+            'test_accuracy': self.accuracy, 'test_loss': self.loss
+        }
+        row.update({l+'_'+s[0]: s[1]
+                    for l in labels
+                    for s in [('loss', self.losses[l])
+                             ,('accuracy', (self.confusions['counts'][l][0]+self.confusions['counts'][l][3])/self.train_size)
+                             ,('recall',          self.confusions['condition_rates'][l][0])
+                             ,('miss_rate',       self.confusions['condition_rates'][l][1])
+                             ,('fallout',         self.confusions['condition_rates'][l][2])
+                             ,('specificity',     self.confusions['condition_rates'][l][3])
+                             ,('precision',       self.confusions['prediction_rates'][l][0])
+                             ,('false_omission',  self.confusions['prediction_rates'][l][1])
+                             ,('false_discovery', self.confusions['prediction_rates'][l][2])
+                             ,('npv',             self.confusions['prediction_rates'][l][3])]
+        })
+        row.update({l_from+'_predicted_'+l_to: self.counts[l_from][i]
+                    for l_from in labels
+                    for (i, l_to) in enumerate(labels)
+        })
+        if not len(row) == len(self.dataframe_columns):
+            raise ValueError(len(row), len(self.dataframe_columns))
+        return row
+
+#TODO write dataframe conversions for experiments and possibly encdecs
 
 
 class EncDecs(AdrGettable):
@@ -676,8 +747,95 @@ class SeabornPlotter(Plotter):
         for xi in x:
             df[xi] = None
 
-    def simple_bar(self, runs, attribute):
-        models_path = sum(("("+run+")" for run in runs), "")+"/models/*"
+    def model_bar(self, runs,
+                  x, y_type, y,
+                  cross_label_from = 'row', cross_label_to = 'x',
+                  hue = 'experiment', # must be either experiment or a per-model value, ignored if cross_label_ANY == 'hue'
+                  row_type = 'per-model', row = None, # ignored if x_type == 'cross_label' and cross_label_ANY == 'row'
+                  col_type = 'per_model', col = None, # ignored if x_type == 'cross_label' and cross_label_ANY == 'col'
+                  run_aliases = None # alternative experiment names
+        ):
+        class EqToAll(object):
+            def __eq__(self, other):
+                return True
+        opts = lambda l: sum(("("+li+")" for li in l), "")
+        models = self.catalog.get(opts(runs) + "/models/*")
+        rows = map(lambda r: map(lambda m: m.to_row(), r), models)
+        run_names = run_aliases or runs
+        for (i,r) in enumerate(run_names):
+            for model_row in rows[i]:
+                model_row['experiment'] = r
+        if y_type == 'cross-label':
+            # TODO don't assume that x is a label axis, let row-col be label axes for example
+            if not 'label' in x:
+                # x must be either actual_label or predicted_label
+                raise ValueError("Wrong value for x!")
+            parts = y.split('_')
+            filt,_y = (parts[0],'_'.join(parts[1:])) \
+                      if parts[0] in labels \
+                      else ((parts[-1],'_'.join(parts[:-1]))
+                            if parts[-1] in labels
+                            else EqToAll())
+            known_needed_keys = []
+            if row and 'label' not in row: known_needed_keys.append(row)
+            if col and 'label' not in col: known_needed_keys.append(col)
+            if hue and 'label' not in hue: known_needed_keys.append(hue)
+            new_rows = []
+            for run_rows in rows:
+                for model_row in run_rows:
+                    new_rows += [dict({k: model_row[k]
+                                       for k in known_needed_keys},
+                                      **{'actual_label': l_from
+                                        ,'predicted_label': l_to
+                                        ,_y: model_row[l_from+'_'+l_to]})
+                                 for l_from in labels
+                                 for l_to in labels
+                                 if (l_from == filt if x == 'predicted_label' else l_to == filt)]
+            df = pd.DataFrame(flatten(rows))
+            bars = sns.factorplot(data = df, x = x, y = _y, hue = hue, row = row, col = col, kind = 'bar', legend = False)
+        elif y_type == 'per-label':
+            parts = y.split('_')
+            if any(map(lambda s: s == 'label', [x, row, col, hue])):
+                # There's a label axis
+                if any(map(lambda s: s in labels, parts)):
+                    raise ValueError("Can't filter when there's already a label axis!")
+
+            else:
+                if any(map(lambda s: s in labels, parts)):
+                    # Filtering needs to happen
+                    filt =
+
+
+        elif y_type == 'per-model':
+            pass
+        else:
+            raise ValueError("Wrong value for x_type!")
+
+        def labelled_transform(rtype, frame):
+            result = {k: {} for k in Model.dataframe_columns if not rtype in k}
+            result[rtype+'_label'] = {}
+            result[rtype] = {}
+            # itertuples is ~50x faster than iterrows
+            for tup in frame.itertuples():
+                for l in labels:
+                    for (i, c) in enumerate(Model.dataframe_columns):
+                        if rtype not in c:
+                            result[c][tup[0]+'_'+l] = tup[i+1]
+                        elif l in c:
+                            result[rtype+'_label'][tup[0]+'_'+l] = l
+                            result[rtype][tup[0]+'_'+l] = tup[i+1]
+                        else:
+                            pass # Turn every label+'_'+rtype column into 1 extra row
+            return pd.DataFrame(result)
+
+        if '_label' in x:
+            df = labelled_transform('_'.join(x.split('_')[:-1]), df)
+        df = pd.DataFrame(flatten(rows))
+        bars = sns.factorplot(data = df, x = x, y = y, hue = hue, row = row, col = col, kind = 'bar', legend = False)
+        bars.set_xticklabels(rotation=30)
+        mpp.legend(loc='upper left')
+        sns.plt.show()
+
 
 
 
@@ -727,21 +885,15 @@ if __name__ == '__main__':
     print(cato.get(et[0]+'/models/*/confusions/condition_rates&prediction_rates/INTENSE'))
     print(cato.get(et[0]+'/models/*/confusions/(condition_rates)(prediction_rates/INTENSE)'))
     print(cato.get('final-test-batch50()(-nodrop)(-nogauss)/models/%/counts/INTENSE'))
-    intense_comp = map(lambda e: map(list, list(e)), list(cato.get('final-test-batch50()(-nodrop)(-nogauss)/models/*/(noise/base_sigma)(drop_rate)(counts/INTENSE)')))
-    indices = flatten(map(list, list(cato.get('final-test-batch50()(-nodrop)(-nogauss)/models/*/name'))),3)
-    print(type(intense_comp))
-    pprint(intense_comp, width=200)
-    print(indices)
-    def r5(l):
-        return [i for i in l for _ in xrange(5)]
-    df_init_dict = dict(
-        label = labels*sum(l for e in intense_comp for l in map(len, e[2])),
-        count = [c[i] for e in intense_comp for c in e[2] for i in xrange(5)],
-        experiment = r5(["batch50"])*len(intense_comp[0][0])+r5(["batch50-nodrop"])*len(intense_comp[1][0])+r5(["batch50-nogauss"])*len(intense_comp[2][0]),
-        base_sigma = r5(intense_comp[0][0])+r5(intense_comp[0][0])+r5(intense_comp[0][0]),
-        drop_rate  = r5(intense_comp[0][1])+r5(intense_comp[1][1])+r5(intense_comp[2][1]),
-    )
-    df = pd.DataFrame(df_init_dict)
+    print(cato.get('final-test-batch50/models/*/train_size'))
+    # e_prefix = '(final-test-on)(final-test-off)(final-test-long)(final-test-batch50)(final-test-batch50-nodrop)(final-test-batch50-nogauss)/models/*'
+    # intense_comp = map(lambda e: map(list, list(e)), list(cato.get(e_prefix+'/(noise/base_sigma)(drop_rate)(counts/DISTRACT&RELAXOPEN&RELAXCLOSED&CASUAL&INTENSE)(train_size)')))
+    # indices = flatten(map(list, list(cato.get(e_prefix+'/name'))),3)
+    # exp_aliases = ['on', 'off', 'long', 'batch50', 'batch50-nodrop', 'batch50-nogauss']
+    # print(type(intense_comp))
+    # pprint(intense_comp, width=200)
+    # print(indices)
+
 
 
     print("\nPLOT\n====")
@@ -752,5 +904,16 @@ if __name__ == '__main__':
                         groups=["batch50", "batch50-nodrop", "batch50-nogauss"],
                         x_data=labels,
                         y_paths=["final-test-batch50()(-nodrop)(-nogauss)/models/%/counts/"+l])
+    else:
+        plotter = SeabornPlotter(cato)
+        plotter.model_bar([ 'final-test-on'
+                          , 'final-test-off'
+                          , 'final-test-long'
+                          , 'final-test-batch50'
+                          , 'final-test-batch50-nodrop'
+                          , 'final-test-batch50-nogauss' ],
+                          'predicted_label',
+                          'accuracy',
+                          row='label')
 
 

@@ -10,12 +10,12 @@ import pywt
 from signals.primitive import Transformer
 
 
-def wavelet_trans(l):
+def wavelet_trans(l, keep_proportion = 0.5):
     #TODO binning per decomposition level?
     #TODO explain why db4
     if not (l is None or l == []):
         coeffs = pywt.wavedec(l, 'db4', level=pywt.dwt_max_level(len(l),pywt.Wavelet('db4')))
-        return merge(*coeffs[0:len(coeffs)//2])
+        return merge(*coeffs[0:int(len(coeffs)*keep_proportion)])
     else:
         return l
 
@@ -32,7 +32,7 @@ def fix_length(l, length):
     elif len(l) > length:
         return l[0:length+1]
     else:
-        print l
+        #print l
         return l + [0 for i in xrange(length - len(l))]
 
 def fourier_trans(l, f_sample = 512, freq_low = 4, freq_high = 50):

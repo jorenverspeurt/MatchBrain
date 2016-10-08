@@ -10,8 +10,8 @@ class MindwaveDataPointReader:
         self._mindwaveMobileRawReader = MindwaveMobileRawReader()
         self._dataPointQueue = collections.deque()
 
-    def start(self):
-        self._mindwaveMobileRawReader.connectToMindWaveMobile()
+    def start(self, address = '20:68:9D:79:D7:43'):
+        self._mindwaveMobileRawReader.connectToMindWaveMobile(address)
         
     def readNextDataPoint(self):
         if (not self._moreDataPointsInQueue()):

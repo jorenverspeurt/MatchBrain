@@ -6,5 +6,11 @@
 
 logs/*
 models/*
+.ipynb_checkpoints/*
+.idea
 
 *.hdf5
+
+*.png
+*.jpg
+*.jpeg
